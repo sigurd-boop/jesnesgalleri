@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import CircularText from "./Circulartext";
+import CircularText from "./CircularText";
 import { motion } from "framer-motion";
 import "../ShakeButton.css";
 
@@ -23,7 +23,12 @@ const WelcomeSection: React.FC = () => {
   const spinSpeed = superBonkers ? 5 : 20; // 5 = very fast
 
   return (
-    <section className="relative h-screen flex flex-col items-center justify-center bg-black text-white">
+    <motion.section
+      className="relative h-screen flex flex-col items-center justify-center bg-black text-white"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8 }}
+    >
       {/* Wrapper for hover on circle */}
       <motion.div
         className="relative flex items-center justify-center"
@@ -64,7 +69,7 @@ const WelcomeSection: React.FC = () => {
           Explore
         </motion.button>
       </motion.div>
-    </section>
+    </motion.section>
   );
 };
 
