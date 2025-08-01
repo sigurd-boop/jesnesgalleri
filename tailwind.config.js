@@ -12,11 +12,16 @@ export default {
           "0%": { opacity: 0, transform: "scale(0.95)" },
           "100%": { opacity: 1, transform: "scale(1)" },
         },
+        blink: {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0" },
+        },
       },
       animation: {
         "fade-in": "fadeIn 1.2s ease-in-out",
         "slide-up": "slideUp 1.2s ease-in-out",
         "lightbox-fade": "lightboxFade 0.3s ease-in-out",
+        blink: "blink 1s step-start infinite",
       },
     },
   },
