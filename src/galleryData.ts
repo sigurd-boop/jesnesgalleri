@@ -1,9 +1,13 @@
 // Grab all cover images
-const coverFiles = import.meta.glob("./images/*/cover.{jpg,png,webp}", {
+interface ImageModule {
+  default: string;
+}
+
+const coverFiles = import.meta.glob<ImageModule>("./images/*/cover.{jpg,png,webp}", {
   eager: true,
 });
 // Grab all images
-const allImages = import.meta.glob("./images/*/*.{jpg,png,webp}", {
+const allImages = import.meta.glob<ImageModule>("./images/*/*.{jpg,png,webp}", {
   eager: true,
 });
 
@@ -18,14 +22,14 @@ const gallerier: Russebuss[] = [];
 for (const path in coverFiles) {
   const parts = path.split("/");
   const busName = parts[parts.length - 2]; // Folder name
-  const cover = (coverFiles[path] as any).default;
+  const cover = coverFiles[path].default;
 
   // Get all other images for this bus
   const relatedImages = Object.keys(allImages)
     .filter(
       (imgPath) => imgPath.includes(busName) && !imgPath.includes("cover")
     )
-    .map((imgPath) => (allImages[imgPath] as any).default);
+    .map((imgPath) => allImages[imgPath].default);
 
   gallerier.push({
     name: busName,
