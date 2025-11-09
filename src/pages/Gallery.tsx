@@ -1,27 +1,65 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import ModelCanvas from '../components/ModelCanvas';
 import { ButtonLink, Eyebrow, Muted, PageDescription, PageTitle, Surface } from '../components/Bits';
-import { subscribeToGalleryItems, type GalleryItem } from '../lib/galleryRepository';
+import {
+  galleryCategories,
+  galleryCategoryLabels,
+  subscribeToGalleryItems,
+  type GalleryCategory,
+  type GalleryItem,
+} from '../lib/galleryRepository';
+
+const categoryOrder: GalleryCategory[] = [...galleryCategories];
+
+const categoryCopy: Record<GalleryCategory, { title: string; blurb: string }> = {
+  commercial: {
+    title: galleryCategoryLabels.commercial,
+    blurb:
+      'Presentasjoner og oppdrag for kunder. Hver modell er tilpasset merkevaren og lyssatt for å fremheve detaljene.',
+  },
+  collection: {
+    title: galleryCategoryLabels.collection,
+    blurb:
+      'Kuraterte verk fra studioet – utforsk materialer, overflater og strukturer i et rolig tempo.',
+  },
+};
 
 const fallbackGallery: GalleryItem[] = [
   {
-    id: 'placeholder-1',
+    id: 'placeholder-commercial-1',
+    title: 'Brand Echo',
+    description: 'En polert 3D-identitet designet for en digital lansering.',
+    modelPath: '/models/brand-echo.glb',
+    category: 'commercial',
+  },
+  {
+    id: 'placeholder-commercial-2',
+    title: 'Samarbeid X',
+    description: 'Konseptobjekt for en limited edition-kampanje.',
+    modelPath: '/models/collab-x.glb',
+    category: 'commercial',
+  },
+  {
+    id: 'placeholder-collection-1',
     title: 'Lysvev I',
     description:
       'Organisk struktur i gjennomskinnelig glass – roterer sakte for å fremheve teksturen og lyset.',
     modelPath: '/models/artifact-01.glb',
+    category: 'collection',
   },
   {
-    id: 'placeholder-2',
+    id: 'placeholder-collection-2',
     title: 'Lysvev II',
     description: 'Intrikat komposisjon i metalliske materialer med et flytende uttrykk.',
     modelPath: '/models/artifact-02.glb',
+    category: 'collection',
   },
   {
-    id: 'placeholder-3',
+    id: 'placeholder-collection-3',
     title: 'Lysvev III',
     description: 'Minimalistisk skulptur med skarpe kanter og varme refleksjoner.',
     modelPath: '/models/artifact-03.glb',
+    category: 'collection',
   },
 ];
 
@@ -30,6 +68,7 @@ const GalleryPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [usingFallback, setUsingFallback] = useState(true);
+  const [activeCategory, setActiveCategory] = useState<GalleryCategory>('commercial');
 
   useEffect(() => {
     const unsubscribe = subscribeToGalleryItems(
@@ -61,6 +100,15 @@ const GalleryPage = () => {
     };
   }, []);
 
+  const itemsByCategory = useMemo(
+    () =>
+      categoryOrder.reduce<Record<GalleryCategory, GalleryItem[]>>((accumulator, category) => {
+        accumulator[category] = items.filter((item) => item.category === category);
+        return accumulator;
+      }, {} as Record<GalleryCategory, GalleryItem[]>),
+    [items],
+  );
+
   return (
     <div className="space-y-20">
       <section className="space-y-6">
@@ -75,26 +123,58 @@ const GalleryPage = () => {
         </ButtonLink>
       </section>
 
-      <section className="grid gap-10 lg:grid-cols-3">
-        {items.map((item) => (
-          <Surface key={item.id ?? item.title} className="flex h-full flex-col gap-6">
-            <div className="space-y-3">
-              <h2 className="text-xl font-semibold text-slate-900">{item.title}</h2>
-              <Muted>{item.description}</Muted>
-            </div>
-            <div className="space-y-4">
-              {item.imageUrl ? (
-                <div className="overflow-hidden rounded-[1.75rem] border border-white/60 bg-white/70">
-                  <img src={item.imageUrl} alt={item.title} className="h-48 w-full object-cover" loading="lazy" />
+      <section className="space-y-10">
+        <div className="flex flex-wrap items-center gap-3">
+          {categoryOrder.map((category) => (
+            <button
+              key={category}
+              type="button"
+              onClick={() => setActiveCategory(category)}
+              className={
+                category === activeCategory
+                  ? 'rounded-full bg-slate-900 px-5 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-white shadow-sm shadow-slate-900/10'
+                  : 'rounded-full border border-slate-200 px-5 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-900'
+              }
+            >
+              {categoryCopy[category].title}
+            </button>
+          ))}
+        </div>
+
+        <div className="space-y-6">
+          <h2 className="text-2xl font-semibold text-slate-900">
+            {categoryCopy[activeCategory].title}
+          </h2>
+          <Muted className="max-w-2xl text-sm text-slate-600">{categoryCopy[activeCategory].blurb}</Muted>
+        </div>
+
+        <section className="grid gap-10 lg:grid-cols-3">
+          {itemsByCategory[activeCategory]?.length ? (
+            itemsByCategory[activeCategory].map((item) => (
+              <Surface key={item.id ?? item.title} className="flex h-full flex-col gap-6">
+                <div className="space-y-3">
+                  <h3 className="text-xl font-semibold text-slate-900">{item.title}</h3>
+                  <Muted>{item.description}</Muted>
                 </div>
-              ) : null}
-              <ModelCanvas modelPath={item.modelPath} />
-            </div>
-            <Muted className="font-mono text-xs uppercase tracking-[0.35em] text-slate-400">
-              {item.modelPath}
-            </Muted>
-          </Surface>
-        ))}
+                <div className="space-y-4">
+                  {item.imageUrl ? (
+                    <div className="overflow-hidden rounded-[1.75rem] border border-white/60 bg-white/70">
+                      <img src={item.imageUrl} alt={item.title} className="h-48 w-full object-cover" loading="lazy" />
+                    </div>
+                  ) : null}
+                  <ModelCanvas modelPath={item.modelPath} />
+                </div>
+                <Muted className="font-mono text-xs uppercase tracking-[0.35em] text-slate-400">
+                  {item.modelPath}
+                </Muted>
+              </Surface>
+            ))
+          ) : (
+            <Surface variant="subtle" className="lg:col-span-3 border-dashed text-sm text-slate-600">
+              Ingen elementer er publisert i denne kategorien ennå.
+            </Surface>
+          )}
+        </section>
       </section>
 
       <Surface id="veiledning" variant="subtle" className="space-y-4 border-dashed">
@@ -105,7 +185,7 @@ const GalleryPage = () => {
             2. Oppdater banen i <code className="font-mono text-xs">galleryItems</code>-listen over, eller hent dataene dine
             fra et CMS.
           </li>
-          <li>3. Galleriet roterer automatisk i en kontinuerlig 360° animasjon.</li>
+          <li>3. Galleriet roterer automatisk i en kontinuerlig 360° animasjon i begge kategorier.</li>
         </ol>
         {error ? <Muted className="text-xs text-rose-600">{error}</Muted> : null}
         {loading && !error ? <Muted className="text-xs">Laster innhold fra Firestore…</Muted> : null}

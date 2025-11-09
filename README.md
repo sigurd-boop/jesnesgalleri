@@ -1,8 +1,8 @@
 # Jesnes Galleri
 
 En sømløs og stilren 3D-opplevelse bygget med React, TypeScript og Tailwind CSS. Prosjektet viser frem GLB-modeller som
-roterer rolig i 360° og leverer en rolig, eksklusiv galleriopplevelse. En innebygget adminflate med Firebase-tilkobling lar
-deg logge inn, redigere og publisere verk direkte fra nettleseren.
+roterer rolig i 360° og leverer en rolig, eksklusiv galleriopplevelse. En innebygget, skjult adminflate med Firebase-tilkobling
+lar deg logge inn, redigere og publisere verk direkte fra nettleseren.
 
 ## Kom i gang
 
@@ -16,9 +16,11 @@ npm run dev
 ## Legg inn dine egne GLB-modeller
 
 1. Plasser filene dine i `public/models`.
-2. Oppdater filbanene via admin-panelet (`/admin`) eller endre standardlisten i Firestore-kolleksjonen `galleryItems`.
-3. Modellen lastes i et WebGL-lerret og roterer automatisk. Hvis du legger til et bilde/preview-URL vises det som et
-   komplementært stillbilde i galleriet.
+2. Oppdater filbanene via admin-panelet (se avsnittet **Skjult admin-tilgang**) eller endre standardlisten i
+   Firestore-kolleksjonen `galleryItems`.
+3. Velg kategori (`commercial` for kommersielle jobber eller `collection` for studio-kolleksjonen) slik at innholdet havner
+   i riktig fane. Modellen lastes i et WebGL-lerret og roterer automatisk. Hvis du legger til et bilde/preview-URL vises det
+   som et komplementært stillbilde i galleriet.
 
 ## Firebase-oppsett
 
@@ -35,6 +37,8 @@ npm run dev
    VITE_FIREBASE_APP_ID="..."
    # Komma-separerte admin-adresser som skal ha full tilgang til admin-panelet
    VITE_FIREBASE_ADMIN_EMAILS="admin@example.com"
+   # Sett en hemmelig slug for admin-routing. Standard er `_atelier-admin` hvis feltet utelates.
+   VITE_ADMIN_ROUTE="min-skjulte-rute"
    ```
 
 4. Installer Firebase-avhengigheten og bygg prosjektet:
@@ -44,15 +48,23 @@ npm run dev
    npm run build
    ```
 
-5. Etter innlogging kan du legge til, oppdatere og slette gallerielementer (tittel, beskrivelse, GLB-filbane, valgfritt
-   bilde) direkte fra admin-siden.
+5. Etter innlogging kan du legge til, oppdatere og slette gallerielementer (tittel, beskrivelse, kategori, GLB-filbane,
+   valgfritt bilde) direkte fra admin-siden.
+
+## Skjult admin-tilgang
+
+- Admin-dashboardet eksponeres på `/${VITE_ADMIN_ROUTE}` (standard `/_atelier-admin`). Oppdater miljøvariabelen før
+  produksjonsutrulling slik at stien blir vanskelig å gjette.
+- Innloggingssiden ligger på samme slug med `/login`-suffiks.
+- Ingen lenker i UI peker til adminruten; skriv URL-en manuelt eller lagre den som et bokmerke.
+- Tilgangen begrenses av e-postene definert i `VITE_FIREBASE_ADMIN_EMAILS`.
 
 ## Struktur
 
-- `src/pages/Gallery.tsx` – hovedgalleri med 3D-visning og Firestore-strøm.
+- `src/pages/Gallery.tsx` – hovedgalleri med 3D-visning, kategorifaner og Firestore-strøm.
 - `src/pages/Contact.tsx` – kontaktinformasjon og CTA.
 - `src/pages/Github.tsx` – lenke til repository og forslag til videre arbeid.
-- `src/pages/AdminDashboard.tsx` – adminflate for CRUD på galleriet.
+- `src/pages/AdminDashboard.tsx` – skjult adminflate for CRUD på galleriet, inkludert kategorifelt.
 - `src/pages/Login.tsx` – sikker innlogging for administratorer.
 - `src/components/ModelCanvas.tsx` – kapsler inn `<Canvas>` fra `@react-three/fiber` og håndterer lastelogikk.
 - `src/context/AuthContext.tsx` – enkel wrapper rundt Firebase Authentication.

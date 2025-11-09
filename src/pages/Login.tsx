@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { ButtonLink, Eyebrow, Muted, PageDescription, PageTitle, Surface } from '../components/Bits';
 import { useAuth } from '../context/AuthContext';
+import { ADMIN_ROUTE_PATH } from '../lib/adminRoutes';
 
 type LocationState = {
   from?: {
@@ -18,7 +19,7 @@ const LoginPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const redirectPath = (location.state as LocationState | null)?.from?.pathname ?? '/admin';
+  const redirectPath = (location.state as LocationState | null)?.from?.pathname ?? ADMIN_ROUTE_PATH;
 
   if (!loading && user && isAdmin) {
     return <Navigate to={redirectPath} replace />;

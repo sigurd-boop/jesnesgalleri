@@ -4,8 +4,11 @@ import { useAuth } from '../context/AuthContext';
 import {
   createGalleryItem,
   deleteGalleryItem,
+  galleryCategories,
+  galleryCategoryLabels,
   subscribeToGalleryItems,
   updateGalleryItem,
+  type GalleryCategory,
   type GalleryItem,
   type GalleryItemInput,
 } from '../lib/galleryRepository';
@@ -16,6 +19,7 @@ const emptyForm: GalleryItemInput = {
   title: '',
   description: '',
   modelPath: '',
+  category: 'collection',
   imageUrl: null,
 };
 
@@ -73,6 +77,7 @@ const AdminDashboard = () => {
       title: formState.title,
       description: formState.description,
       modelPath: formState.modelPath,
+      category: formState.category,
       imageUrl: formState.imageUrl && formState.imageUrl.length > 0 ? formState.imageUrl : null,
     };
 
@@ -99,6 +104,7 @@ const AdminDashboard = () => {
       title: item.title,
       description: item.description,
       modelPath: item.modelPath,
+      category: item.category,
       imageUrl: item.imageUrl ?? null,
     });
     setSuccessMessage(null);
@@ -174,6 +180,20 @@ const AdminDashboard = () => {
                 className="w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition-colors focus:border-slate-400 focus:ring-1 focus:ring-slate-300"
               />
             </label>
+            <label className="space-y-2">
+              <span className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Kategori</span>
+              <select
+                value={formState.category}
+                onChange={(event) => updateField('category', event.target.value as GalleryCategory)}
+                className="w-full appearance-none rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition-colors focus:border-slate-400 focus:ring-1 focus:ring-slate-300"
+              >
+                {galleryCategories.map((category) => (
+                  <option key={category} value={category}>
+                    {galleryCategoryLabels[category]}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
           <label className="space-y-2">
             <span className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Beskrivelse</span>
@@ -246,6 +266,7 @@ const AdminDashboard = () => {
                       <p className="text-sm text-slate-600">{item.description}</p>
                     </div>
                     <div className="space-y-1 text-xs font-mono uppercase tracking-[0.35em] text-slate-400">
+                      <p>kategori · {galleryCategoryLabels[item.category]}</p>
                       <p>modell · {item.modelPath}</p>
                       {item.imageUrl ? <p>bilde · {item.imageUrl}</p> : null}
                     </div>

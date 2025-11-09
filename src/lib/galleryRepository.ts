@@ -42,11 +42,24 @@ const sanitizeString = (input: unknown): string => (typeof input === 'string' ? 
 const optionalString = (input: unknown): string | undefined =>
   typeof input === 'string' && input.trim().length > 0 ? input : undefined;
 
+export const galleryCategories = ['commercial', 'collection'] as const;
+
+export type GalleryCategory = (typeof galleryCategories)[number];
+
+export const galleryCategoryLabels: Record<GalleryCategory, string> = {
+  commercial: 'Kommersielle jobber',
+  collection: 'Kolleksjon',
+};
+
+const isGalleryCategory = (value: unknown): value is GalleryCategory =>
+  typeof value === 'string' && (galleryCategories as readonly string[]).includes(value);
+
 export type GalleryItem = {
   id: string;
   title: string;
   description: string;
   modelPath: string;
+  category: GalleryCategory;
   imageUrl?: string;
   createdAt?: number;
   updatedAt?: number;
@@ -56,21 +69,25 @@ export type GalleryItemInput = {
   title: string;
   description: string;
   modelPath: string;
+  category: GalleryCategory;
   imageUrl?: string | null;
 };
 
-type GalleryItemDocument = GalleryItemInput & {
+type GalleryItemDocument = Omit<GalleryItemInput, 'category'> & {
+  category?: string;
   createdAt?: TimestampLike;
   updatedAt?: TimestampLike;
 };
 
 const mapDocument = (snapshotId: string, data: DocumentData): GalleryItem => {
   const candidate = data as GalleryItemDocument;
+  const category = isGalleryCategory(candidate.category) ? candidate.category : 'collection';
   return {
     id: snapshotId,
     title: sanitizeString(candidate.title).trim(),
     description: sanitizeString(candidate.description).trim(),
     modelPath: sanitizeString(candidate.modelPath).trim(),
+    category,
     imageUrl: optionalString(candidate.imageUrl),
     createdAt: toMillis(candidate.createdAt),
     updatedAt: toMillis(candidate.updatedAt),
@@ -111,6 +128,7 @@ const normalizeInput = (data: GalleryItemInput): GalleryItemInput => ({
   title: data.title.trim(),
   description: data.description.trim(),
   modelPath: data.modelPath.trim(),
+  category: isGalleryCategory(data.category) ? data.category : 'collection',
   imageUrl: data.imageUrl ? data.imageUrl.trim() : null,
 });
 

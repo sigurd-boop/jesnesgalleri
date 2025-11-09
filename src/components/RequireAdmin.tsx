@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Surface } from './Bits';
+import { ADMIN_LOGIN_PATH } from '../lib/adminRoutes';
 
 type RequireAdminProps = {
   children: ReactNode;
@@ -29,7 +30,7 @@ const RequireAdmin = ({ children }: RequireAdminProps) => {
   }
 
   if (!user || !isAdmin) {
-    return <Navigate to="/admin/login" state={{ from: location }} replace />;
+    return <Navigate to={ADMIN_LOGIN_PATH} state={{ from: location }} replace />;
   }
 
   return <>{children}</>;
