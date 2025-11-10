@@ -2,6 +2,13 @@ import { initializeApp, type FirebaseApp, type FirebaseOptions } from 'firebase/
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
 
+export class FirebaseConfigError extends Error {
+  constructor(missingKeys: string[]) {
+    super(`Firebase-konfigurasjon mangler følgende miljøvariabler: ${missingKeys.join(', ')}`);
+    this.name = 'FirebaseConfigError';
+  }
+}
+
 let appInstance: FirebaseApp | null = null;
 let initializationAttempted = false;
 let initializationError: Error | null = null;
@@ -21,9 +28,7 @@ const firebaseOptionFromEnv = (): FirebaseOptions | null => {
     .map(([key]) => key);
 
   if (missing.length > 0) {
-    initializationError = new Error(
-      `Firebase-konfigurasjon mangler følgende miljøvariabler: ${missing.join(', ')}`,
-    );
+    initializationError = new FirebaseConfigError(missing);
     console.warn(initializationError.message);
     return null;
   }

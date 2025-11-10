@@ -8,6 +8,7 @@ import {
   type GalleryCategory,
   type GalleryItem,
 } from '../lib/galleryRepository';
+import { FirebaseConfigError } from '../lib/firebase';
 import { fallbackGalleryItems } from '../lib/galleryFallback';
 
 const categoryOrder: GalleryCategory[] = [...galleryCategories];
@@ -46,10 +47,14 @@ const GalleryPage = () => {
         setLoading(false);
       },
       (subscribeError) => {
-        console.error('Kunne ikke hente galleriet fra Firestore', subscribeError);
+        if (!(subscribeError instanceof FirebaseConfigError)) {
+          console.error('Kunne ikke hente galleriet fra Firestore', subscribeError);
+        }
         setError(
-          subscribeError.message ||
-            'Kunne ikke koble til Firestore. Viser forhåndslastede eksempler i stedet.',
+          subscribeError instanceof FirebaseConfigError
+            ? 'Firebase er ikke konfigurert ennå. Viser forhåndsinnhold.'
+            : subscribeError.message ||
+                'Kunne ikke koble til Firestore. Viser forhåndslastede eksempler i stedet.',
         );
         setItems(fallbackGalleryItems);
         setUsingFallback(true);

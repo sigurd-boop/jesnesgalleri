@@ -7,18 +7,10 @@ import useFileAvailability from '../hooks/useFileAvailability';
 import { cn } from '../lib/cn';
 
 const LOGO_MODEL_PATH = '/models/textured.glb';
-const HDRI_PATH = '/hdr/studio_small_09_2k.hdr';
 const LOGO_SCALE = 3.6;
 
 type LogoSpinnerProps = {
   className?: string;
-};
-
-const JesneEnvironment = () => {
-  const availability = useFileAvailability(HDRI_PATH);
-  const shouldUsePreset = availability !== 'available';
-
-  return shouldUsePreset ? <Environment preset="studio" /> : <Environment files={HDRI_PATH} />;
 };
 
 const ChromeJesneLogo = () => {
@@ -32,7 +24,7 @@ const ChromeJesneLogo = () => {
         color: 0xf7f7f7,
         metalness: 1,
         roughness: 0.035,
-        reflectivity: 1,
+        reflectivity: 5,
         clearcoat: 1,
         clearcoatRoughness: 0.08,
         envMapIntensity: 1.75,
@@ -112,8 +104,13 @@ const LogoSpinner = ({ className }: LogoSpinnerProps) => {
 
   return (
     <div className={cn('relative aspect-square w-28 sm:w-32', className)}>
-      <Canvas camera={{ position: [0, 0.65, 6.2], fov: 30 }} dpr={[1, 2]} shadows className="!h-full !w-full">
-        <color attach="background" args={["transparent"]} />
+      <Canvas
+        camera={{ position: [0, 0.65, 6.2], fov: 30 }}
+        dpr={[1, 2]}
+        shadows
+        gl={{ alpha: true }}
+        className="!h-full !w-full [&>*]:!bg-transparent"
+      >
         <ambientLight intensity={0.65} />
         <directionalLight position={[6, 6, 8]} intensity={1.6} />
         <directionalLight position={[-4, -3, -6]} intensity={0.55} />
@@ -128,7 +125,7 @@ const LogoSpinner = ({ className }: LogoSpinnerProps) => {
           }
         >
           {shouldUseFallback ? <FallbackIcosahedron /> : <ChromeJesneLogo />}
-          <JesneEnvironment />
+          <Environment preset="studio" />
         </Suspense>
       </Canvas>
       <span className="sr-only">Jesnes Galleri</span>
