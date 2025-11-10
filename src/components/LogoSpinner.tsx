@@ -3,13 +3,41 @@ import { Environment, useGLTF } from '@react-three/drei';
 import { Suspense, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Box3, MeshPhysicalMaterial, Vector3, type Group, type Mesh } from 'three';
 
-const LOGO_MODEL_PATH = '/models/textured.glb';
-const LOGO_SCALE = 1.4;
+import useFileAvailability from '../hooks/useFileAvailability';
 
-const ChromeJesneLogo = () => {
+const LOGO_MODEL_PATH = '/models/textured.glb';
+const LOGO_SCALE = 1.8;
+
+type RotatingLogoProps = {
+  scale?: number;
+};
+
+const FallbackIcosahedron = ({ scale = 1 }: RotatingLogoProps) => {
+  const meshRef = useRef<Group>(null);
+
+  useFrame((_, delta) => {
+    if (!meshRef.current) {
+      return;
+    }
+
+    meshRef.current.rotation.y += delta * 0.6;
+    meshRef.current.rotation.x = Math.sin(Date.now() / 2200) * 0.25;
+  });
+
+  return (
+    <group ref={meshRef} scale={scale}>
+      <mesh castShadow>
+        <icosahedronGeometry args={[1.1, 1]} />
+        <meshStandardMaterial color="#0f172a" metalness={0.45} roughness={0.15} />
+      </mesh>
+    </group>
+  );
+};
+
+const ChromeJesneLogo = ({ scale = 1 }: RotatingLogoProps) => {
+  const group = useRef<Group>(null);
   const { scene } = useGLTF(LOGO_MODEL_PATH);
   const logo = useMemo(() => scene.clone(true), [scene]);
-  const group = useRef<Group>(null);
 
   const createChromeMaterial = useCallback(
     () =>
@@ -46,12 +74,12 @@ const ChromeJesneLogo = () => {
     const maxDimension = Math.max(size.x, size.y, size.z) || 1;
 
     logo.position.sub(center);
-    logo.scale.setScalar(LOGO_SCALE / maxDimension);
+    logo.scale.setScalar(scale / maxDimension);
 
     return () => {
       materials.forEach((material) => material.dispose());
     };
-  }, [createChromeMaterial, logo]);
+  }, [createChromeMaterial, logo, scale]);
 
   useFrame((_, delta) => {
     if (!group.current) {
@@ -70,20 +98,19 @@ const ChromeJesneLogo = () => {
 };
 
 const LogoSpinner = () => {
+  const availability = useFileAvailability(LOGO_MODEL_PATH);
+  const shouldUseFallback = availability !== 'available';
+
   return (
-    <div className="relative h-16 w-16 overflow-hidden rounded-[1.75rem] border border-slate-200/70 bg-white/70 shadow-[0_20px_45px_-35px_rgba(15,23,42,0.75)]">
-      <Canvas
-        camera={{ position: [0, 0.4, 4], fov: 32 }}
-        dpr={[1, 2]}
-        className="[&>*]:!bg-transparent"
-      >
+    <div className="relative h-24 w-24 overflow-hidden rounded-[2.25rem] border border-slate-200/70 bg-transparent shadow-[0_20px_45px_-35px_rgba(15,23,42,0.75)]">
+      <Canvas camera={{ position: [0, 0.35, 4], fov: 28 }} dpr={[1, 2]} className="[&>*]:!bg-transparent">
         <color attach="background" args={["transparent"]} />
-        <ambientLight intensity={0.8} />
-        <directionalLight position={[3, 3, 2]} intensity={1.3} />
-        <directionalLight position={[-3, -2, -3]} intensity={0.45} />
-        <pointLight position={[0, 2, 2]} intensity={0.4} color="#c7d2fe" />
-        <Suspense fallback={null}>
-          <ChromeJesneLogo />
+        <ambientLight intensity={0.85} />
+        <directionalLight position={[3, 3, 2]} intensity={1.35} />
+        <directionalLight position={[-3, -2, -3]} intensity={0.5} />
+        <pointLight position={[0, 2, 2]} intensity={0.45} color="#c7d2fe" />
+        <Suspense fallback={<FallbackIcosahedron scale={0.9} />}>
+          {shouldUseFallback ? <FallbackIcosahedron scale={0.9} /> : <ChromeJesneLogo scale={LOGO_SCALE} />}
           <Environment preset="studio" />
         </Suspense>
       </Canvas>
@@ -91,7 +118,5 @@ const LogoSpinner = () => {
     </div>
   );
 };
-
-useGLTF.preload(LOGO_MODEL_PATH);
 
 export default LogoSpinner;
