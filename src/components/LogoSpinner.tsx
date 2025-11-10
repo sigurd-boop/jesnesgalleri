@@ -1,40 +1,27 @@
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Environment, useGLTF } from '@react-three/drei';
+import { Environment, Html, useGLTF } from '@react-three/drei';
 import { Suspense, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Box3, MeshPhysicalMaterial, Vector3, type Group, type Mesh } from 'three';
 
 import useFileAvailability from '../hooks/useFileAvailability';
+import { cn } from '../lib/cn';
 
 const LOGO_MODEL_PATH = '/models/textured.glb';
-const LOGO_SCALE = 1.8;
+const HDRI_PATH = '/hdr/studio_small_09_2k.hdr';
+const LOGO_SCALE = 3.6;
 
-type RotatingLogoProps = {
-  scale?: number;
+type LogoSpinnerProps = {
+  className?: string;
 };
 
-const FallbackIcosahedron = ({ scale = 1 }: RotatingLogoProps) => {
-  const meshRef = useRef<Group>(null);
+const JesneEnvironment = () => {
+  const availability = useFileAvailability(HDRI_PATH);
+  const shouldUsePreset = availability !== 'available';
 
-  useFrame((_, delta) => {
-    if (!meshRef.current) {
-      return;
-    }
-
-    meshRef.current.rotation.y += delta * 0.6;
-    meshRef.current.rotation.x = Math.sin(Date.now() / 2200) * 0.25;
-  });
-
-  return (
-    <group ref={meshRef} scale={scale}>
-      <mesh castShadow>
-        <icosahedronGeometry args={[1.1, 1]} />
-        <meshStandardMaterial color="#0f172a" metalness={0.45} roughness={0.15} />
-      </mesh>
-    </group>
-  );
+  return shouldUsePreset ? <Environment preset="studio" /> : <Environment files={HDRI_PATH} />;
 };
 
-const ChromeJesneLogo = ({ scale = 1 }: RotatingLogoProps) => {
+const ChromeJesneLogo = () => {
   const group = useRef<Group>(null);
   const { scene } = useGLTF(LOGO_MODEL_PATH);
   const logo = useMemo(() => scene.clone(true), [scene]);
@@ -42,13 +29,13 @@ const ChromeJesneLogo = ({ scale = 1 }: RotatingLogoProps) => {
   const createChromeMaterial = useCallback(
     () =>
       new MeshPhysicalMaterial({
-        color: 0xffffff,
+        color: 0xf7f7f7,
         metalness: 1,
-        roughness: 0.05,
+        roughness: 0.035,
         reflectivity: 1,
         clearcoat: 1,
         clearcoatRoughness: 0.08,
-        envMapIntensity: 1.4,
+        envMapIntensity: 1.75,
       }),
     [],
   );
@@ -59,8 +46,8 @@ const ChromeJesneLogo = ({ scale = 1 }: RotatingLogoProps) => {
     logo.traverse((child) => {
       if ((child as Mesh).isMesh) {
         const mesh = child as Mesh;
-        mesh.castShadow = false;
-        mesh.receiveShadow = false;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
         const material = createChromeMaterial();
         material.needsUpdate = true;
         mesh.material = material;
@@ -74,44 +61,74 @@ const ChromeJesneLogo = ({ scale = 1 }: RotatingLogoProps) => {
     const maxDimension = Math.max(size.x, size.y, size.z) || 1;
 
     logo.position.sub(center);
-    logo.scale.setScalar(scale / maxDimension);
+    logo.scale.setScalar(LOGO_SCALE / maxDimension);
 
     return () => {
       materials.forEach((material) => material.dispose());
     };
-  }, [createChromeMaterial, logo, scale]);
+  }, [createChromeMaterial, logo]);
 
   useFrame((_, delta) => {
     if (!group.current) {
       return;
     }
 
-    group.current.rotation.y += delta * 0.6;
-    group.current.rotation.x = Math.sin(Date.now() / 2500) * 0.22;
+    group.current.rotation.y += delta * 0.32;
+    group.current.rotation.x = Math.sin(Date.now() / 3600) * 0.16;
   });
 
   return (
-    <group ref={group}>
+    <group ref={group} position={[0, -0.18, 0]}>
       <primitive object={logo} dispose={null} />
     </group>
   );
 };
 
-const LogoSpinner = () => {
+const FallbackIcosahedron = () => {
+  const meshRef = useRef<Group>(null);
+
+  useFrame((_, delta) => {
+    if (!meshRef.current) {
+      return;
+    }
+
+    meshRef.current.rotation.y += delta * 0.4;
+    meshRef.current.rotation.x = Math.sin(Date.now() / 2800) * 0.22;
+  });
+
+  return (
+    <group ref={meshRef} scale={2.3}>
+      <mesh castShadow>
+        <icosahedronGeometry args={[1.2, 2]} />
+        <meshStandardMaterial color="#1e293b" metalness={0.55} roughness={0.18} />
+      </mesh>
+    </group>
+  );
+};
+
+const LogoSpinner = ({ className }: LogoSpinnerProps) => {
   const availability = useFileAvailability(LOGO_MODEL_PATH);
   const shouldUseFallback = availability !== 'available';
 
   return (
-    <div className="relative h-24 w-24 overflow-hidden rounded-[2.25rem] border border-slate-200/70 bg-transparent shadow-[0_20px_45px_-35px_rgba(15,23,42,0.75)]">
-      <Canvas camera={{ position: [0, 0.35, 4], fov: 28 }} dpr={[1, 2]} className="[&>*]:!bg-transparent">
+    <div className={cn('relative aspect-square w-28 sm:w-32', className)}>
+      <Canvas camera={{ position: [0, 0.65, 6.2], fov: 30 }} dpr={[1, 2]} shadows className="!h-full !w-full">
         <color attach="background" args={["transparent"]} />
-        <ambientLight intensity={0.85} />
-        <directionalLight position={[3, 3, 2]} intensity={1.35} />
-        <directionalLight position={[-3, -2, -3]} intensity={0.5} />
-        <pointLight position={[0, 2, 2]} intensity={0.45} color="#c7d2fe" />
-        <Suspense fallback={<FallbackIcosahedron scale={0.9} />}>
-          {shouldUseFallback ? <FallbackIcosahedron scale={0.9} /> : <ChromeJesneLogo scale={LOGO_SCALE} />}
-          <Environment preset="studio" />
+        <ambientLight intensity={0.65} />
+        <directionalLight position={[6, 6, 8]} intensity={1.6} />
+        <directionalLight position={[-4, -3, -6]} intensity={0.55} />
+        <pointLight position={[0, 2.5, 4]} intensity={0.45} color="#c7d2fe" />
+        <Suspense
+          fallback={
+            <Html center>
+              <div className="rounded-full border border-slate-200/60 bg-white/80 px-3 py-1 text-[0.6rem] uppercase tracking-[0.3em] text-slate-500">
+                Laster logo …
+              </div>
+            </Html>
+          }
+        >
+          {shouldUseFallback ? <FallbackIcosahedron /> : <ChromeJesneLogo />}
+          <JesneEnvironment />
         </Suspense>
       </Canvas>
       <span className="sr-only">Jesnes Galleri</span>
