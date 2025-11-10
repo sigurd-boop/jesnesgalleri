@@ -41,14 +41,25 @@ const toMillis = (value: unknown): number | undefined => {
 const sanitizeString = (input: unknown): string => (typeof input === 'string' ? input : '');
 const optionalString = (input: unknown): string | undefined =>
   typeof input === 'string' && input.trim().length > 0 ? input : undefined;
+const optionalStringArray = (input: unknown): string[] | undefined => {
+  if (!Array.isArray(input)) {
+    return undefined;
+  }
+
+  const cleaned = input
+    .map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
+    .filter((entry) => entry.length > 0);
+
+  return cleaned.length ? cleaned : undefined;
+};
 
 export const galleryCategories = ['commercial', 'collection'] as const;
 
 export type GalleryCategory = (typeof galleryCategories)[number];
 
 export const galleryCategoryLabels: Record<GalleryCategory, string> = {
-  commercial: 'Kommersielle jobber',
-  collection: 'Kolleksjon',
+  commercial: 'Commissioned work',
+  collection: 'Collection',
 };
 
 const isGalleryCategory = (value: unknown): value is GalleryCategory =>
@@ -61,6 +72,9 @@ export type GalleryItem = {
   modelPath: string;
   category: GalleryCategory;
   imageUrl?: string;
+  galleryShots?: string[];
+  postedAt?: string;
+  tags?: string[];
   createdAt?: number;
   updatedAt?: number;
 };
@@ -71,6 +85,9 @@ export type GalleryItemInput = {
   modelPath: string;
   category: GalleryCategory;
   imageUrl?: string | null;
+  galleryShots?: string[] | null;
+  postedAt?: string | null;
+  tags?: string[] | null;
 };
 
 type GalleryItemDocument = Omit<GalleryItemInput, 'category'> & {
@@ -89,6 +106,9 @@ const mapDocument = (snapshotId: string, data: DocumentData): GalleryItem => {
     modelPath: sanitizeString(candidate.modelPath).trim(),
     category,
     imageUrl: optionalString(candidate.imageUrl),
+    galleryShots: optionalStringArray(candidate.galleryShots),
+    postedAt: optionalString(candidate.postedAt),
+    tags: optionalStringArray(candidate.tags),
     createdAt: toMillis(candidate.createdAt),
     updatedAt: toMillis(candidate.updatedAt),
   };
@@ -106,7 +126,7 @@ export const subscribeToGalleryItems = (
   if (!db) {
     const error =
       initializationError ??
-      new Error('Firebase er ikke konfigurert. Legg inn miljøvariabler for å bruke admin-panelet.');
+      new Error('Firebase is not configured. Add the environment variables to use the admin dashboard.');
     onError?.(error);
     return () => undefined;
   }
@@ -130,12 +150,15 @@ const normalizeInput = (data: GalleryItemInput): GalleryItemInput => ({
   modelPath: data.modelPath.trim(),
   category: isGalleryCategory(data.category) ? data.category : 'collection',
   imageUrl: data.imageUrl ? data.imageUrl.trim() : null,
+  galleryShots: data.galleryShots?.map((entry) => entry.trim()).filter(Boolean) ?? null,
+  postedAt: data.postedAt?.trim() ?? null,
+  tags: data.tags?.map((entry) => entry.trim()).filter(Boolean) ?? null,
 });
 
 export const createGalleryItem = async (data: GalleryItemInput) => {
   const db = getFirestoreInstance();
   if (!db) {
-    throw getFirebaseInitializationError() ?? new Error('Firebase er ikke konfigurert.');
+    throw getFirebaseInitializationError() ?? new Error('Firebase is not configured.');
   }
 
   const payload = normalizeInput(data);
@@ -150,7 +173,7 @@ export const createGalleryItem = async (data: GalleryItemInput) => {
 export const updateGalleryItem = async (id: string, data: GalleryItemInput) => {
   const db = getFirestoreInstance();
   if (!db) {
-    throw getFirebaseInitializationError() ?? new Error('Firebase er ikke konfigurert.');
+    throw getFirebaseInitializationError() ?? new Error('Firebase is not configured.');
   }
 
   const payload = normalizeInput(data);
@@ -165,7 +188,7 @@ export const updateGalleryItem = async (id: string, data: GalleryItemInput) => {
 export const deleteGalleryItem = async (id: string) => {
   const db = getFirestoreInstance();
   if (!db) {
-    throw getFirebaseInitializationError() ?? new Error('Firebase er ikke konfigurert.');
+    throw getFirebaseInitializationError() ?? new Error('Firebase is not configured.');
   }
 
   const reference = doc(db, COLLECTION_NAME, id);

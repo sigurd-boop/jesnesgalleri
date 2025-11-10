@@ -2,34 +2,34 @@ import { ButtonLink, Eyebrow, Muted, PageDescription, PageTitle, Surface } from 
 
 const contactPoints = [
   {
-    label: 'E-post',
-    value: 'hei@jesnesgalleri.no',
-    href: 'mailto:hei@jesnesgalleri.no',
+    label: 'Email',
+    value: 'hello@jesnesgallery.com',
+    href: 'mailto:hello@jesnesgallery.com',
   },
   {
-    label: 'Telefon',
+    label: 'Phone',
     value: '+47 41 23 45 67',
     href: 'tel:+4741234567',
   },
   {
-    label: 'Adresse',
-    value: 'Atelier Jesnes, Bjørvika, Oslo',
+    label: 'Studio',
+    value: 'Jesnes Studio, Bjørvika, Oslo',
   },
 ];
 
 const ContactPage = () => {
   return (
     <div className="mx-auto max-w-4xl space-y-16">
-      <section className="space-y-6">
-        <Eyebrow>kontakt</Eyebrow>
-        <PageTitle>La oss ta en prat</PageTitle>
+      <section className="space-y-6 animate-fade-in-up">
+        <Eyebrow>contact</Eyebrow>
+        <PageTitle>Let’s plan something beautiful</PageTitle>
         <PageDescription>
-          Enten du ønsker et samarbeid, en privat visning eller bare vil prate om idéer, er du velkommen til å ta kontakt.
-          Vi svarer raskt og fleksibelt.
+          Partnerships, private showcases, bespoke commissions — whatever you have in mind, reach out and we’ll respond
+          quickly with a tailored next step.
         </PageDescription>
       </section>
 
-      <section className="grid gap-6 sm:grid-cols-2">
+      <section className="grid gap-6 sm:grid-cols-2 animate-fade-in-up">
         {contactPoints.map((item) => (
           <Surface key={item.label} className="space-y-2">
             <span className="text-xs uppercase tracking-[0.35em] text-slate-500">{item.label}</span>
@@ -47,17 +47,14 @@ const ContactPage = () => {
         ))}
       </section>
 
-      <Surface variant="subtle" className="space-y-4">
-        <h2 className="text-lg font-semibold text-slate-900">Bestill en privat visning</h2>
+      <Surface variant="subtle" className="space-y-4 animate-fade-in-up">
+        <h2 className="text-lg font-semibold text-slate-900">Book a private viewing</h2>
         <Muted>
-          Send oss en kort beskrivelse av hva du ønsker å se, og vi setter opp en digital eller fysisk visning skreddersydd
-          for deg.
+          Share a short brief of what you would like to explore and we will arrange a digital or in-person presentation
+          curated for you.
         </Muted>
-        <ButtonLink
-          href="mailto:hei@jesnesgalleri.no?subject=Privat%20visning"
-          className="w-fit"
-        >
-          Send forespørsel
+        <ButtonLink href="mailto:hello@jesnesgallery.com?subject=Private%20Viewing" className="w-fit">
+          Send request
         </ButtonLink>
       </Surface>
     </div>

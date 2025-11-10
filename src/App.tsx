@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
 import GalleryPage from './pages/Gallery';
 import ContactPage from './pages/Contact';
@@ -22,22 +23,59 @@ type ExternalNavItem = {
 };
 
 const navItems: Array<InternalNavItem | ExternalNavItem> = [
-  { to: '/', label: 'Galleri', type: 'internal' },
-  { to: '/kontakt', label: 'Kontakt', type: 'internal' },
+  { to: '/', label: 'Gallery', type: 'internal' },
+  { to: '/contact', label: 'Contact', type: 'internal' },
   { to: '/github', label: 'GitHub', type: 'internal' },
-  { href: 'https://jesnesgalleri.bigcartel.com', label: 'Butikk', type: 'external' },
+  { href: 'https://jesnesgalleri.bigcartel.com', label: 'Shop', type: 'external' },
 ];
 
 const App = () => {
+  const [navHidden, setNavHidden] = useState(false);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+      const isMobile = window.innerWidth < 640;
+
+      if (!isMobile) {
+        setNavHidden(false);
+        lastScrollY.current = currentY;
+        return;
+      }
+
+      if (currentY > lastScrollY.current + 8 && currentY > 80) {
+        setNavHidden(true);
+      } else if (currentY < lastScrollY.current - 8) {
+        setNavHidden(false);
+      }
+
+      lastScrollY.current = currentY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-slate-100">
-      <header className="sticky top-0 z-20 border-b border-white/60 bg-slate-100/70 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-8 sm:flex-row sm:items-center sm:justify-between">
-          <NavLink to="/" className="inline-flex items-center gap-3">
-            <LogoSpinner />
-            <span className="text-xl font-semibold tracking-tight text-slate-900">Jesnes Galleri</span>
+      <header className="sticky top-0 z-30 border-b border-white/60 bg-slate-100/90 backdrop-blur-sm shadow-[0_6px_18px_-14px_rgba(15,23,42,0.55)] supports-[backdrop-filter]:backdrop-blur lg:static">
+        <div className="mx-auto flex max-w-6xl flex-col items-center gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-6 sm:py-6 lg:gap-8">
+          <NavLink
+            to="/"
+            className="flex w-full flex-col items-center sm:w-auto sm:flex-row sm:items-center sm:justify-start"
+            aria-label="Jesnes Gallery home"
+          >
+            <LogoSpinner className="w-full max-w-3xl sm:max-w-4xl" />
           </NavLink>
-          <nav className="flex flex-wrap items-center gap-2">
+          <nav
+            className={cn(
+              'grid w-full grid-cols-2 gap-2 overflow-hidden text-center transition-all duration-300 ease-out sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:gap-2 sm:overflow-visible',
+              navHidden ? 'max-h-0 opacity-0 pointer-events-none sm:max-h-none sm:opacity-100 sm:pointer-events-auto' : 'max-h-24 opacity-100',
+            )}
+          >
             {navItems.map((item) =>
               item.type === 'internal' ? (
                 <NavLink
@@ -45,7 +83,7 @@ const App = () => {
                   to={item.to}
                   className={({ isActive }) =>
                     cn(
-                      'rounded-full px-4 py-2 text-[0.7rem] font-medium uppercase tracking-[0.35em] text-slate-500 transition-colors duration-200',
+                      'rounded-full px-4 py-2 text-[0.65rem] font-medium uppercase tracking-[0.35em] text-slate-500 transition-all duration-200 sm:text-[0.7rem]',
                       isActive ? 'bg-slate-900 text-white shadow-sm shadow-slate-900/10' : 'hover:text-slate-900',
                     )
                   }
@@ -58,7 +96,7 @@ const App = () => {
                   href={item.href}
                   target="_blank"
                   rel="noreferrer"
-                  className="rounded-full border border-slate-200 px-4 py-2 text-[0.7rem] font-medium uppercase tracking-[0.35em] text-slate-500 transition-colors duration-200 hover:border-slate-300 hover:text-slate-900"
+                  className="rounded-full border border-slate-200 px-4 py-2 text-[0.65rem] font-medium uppercase tracking-[0.35em] text-slate-500 transition-all duration-200 hover:border-slate-300 hover:text-slate-900 sm:text-[0.7rem]"
                 >
                   {item.label}
                 </a>
@@ -71,7 +109,8 @@ const App = () => {
       <main className="mx-auto min-h-[calc(100vh-220px)] max-w-6xl px-6 py-16">
         <Routes>
           <Route path="/" element={<GalleryPage />} />
-          <Route path="/kontakt" element={<ContactPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/kontakt" element={<Navigate to="/contact" replace />} />
           <Route path="/github" element={<GithubPage />} />
           <Route
             path={ADMIN_ROUTE_PATH}
@@ -88,8 +127,8 @@ const App = () => {
 
       <footer className="border-t border-white/70 bg-white/70">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-6 py-8 text-xs uppercase tracking-[0.35em] text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} Jesnes Galleri</p>
-          <p>Bygget med React · TypeScript · Tailwind</p>
+          <p>© {new Date().getFullYear()} Jesnes Gallery</p>
+          <p>Crafted with React · TypeScript · Tailwind</p>
         </div>
       </footer>
     </div>

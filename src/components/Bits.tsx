@@ -11,7 +11,10 @@ export const Eyebrow = ({ className, ...props }: HTMLAttributes<HTMLSpanElement>
 export const PageTitle = ({ className, ...props }: HTMLAttributes<HTMLHeadingElement>) => (
   <h1
     {...props}
-    className={cn('text-balance text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl', className)}
+    className={cn(
+      'text-balance text-4xl font-bold tracking-[-0.02em] text-slate-900 sm:text-5xl lg:text-6xl',
+      className,
+    )}
   />
 );
 

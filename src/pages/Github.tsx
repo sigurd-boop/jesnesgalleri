@@ -3,20 +3,18 @@ import { ButtonLink, Eyebrow, Muted, PageDescription, PageTitle, Surface } from 
 const GithubPage = () => {
   return (
     <div className="mx-auto max-w-4xl space-y-16">
-      <section className="space-y-6">
+      <section className="space-y-6 animate-fade-in-up">
         <Eyebrow>github</Eyebrow>
-        <PageTitle>Utforsk koden</PageTitle>
+        <PageTitle>Explore the source</PageTitle>
         <PageDescription>
-          Prosjektet er bygget med React, TypeScript og Tailwind CSS. I GitHub-repositoriet finner du alle komponenter,
-          eksempeldata og instruksjoner for å koble til dine egne GLB-modeller.
+          The project runs on React, TypeScript, and Tailwind CSS. Visit the repository for every component, sample data,
+          and instructions for connecting your own GLB models.
         </PageDescription>
       </section>
 
-      <Surface className="space-y-5">
+      <Surface className="space-y-5 animate-fade-in-up">
         <h2 className="text-lg font-semibold text-slate-900">Repository</h2>
-        <Muted>
-          Gå til GitHub for å klone, åpne issues eller lage dine egne varianter av galleriet.
-        </Muted>
+        <Muted>Clone the project, open issues, or fork your own edition on GitHub.</Muted>
         <ButtonLink
           href="https://github.com/ditt-brukernavn/jesnesgalleri"
           target="_blank"
@@ -24,16 +22,16 @@ const GithubPage = () => {
           tone="neutral"
           className="w-fit"
         >
-          Åpne på GitHub
+          Open on GitHub
         </ButtonLink>
       </Surface>
 
-      <Surface variant="subtle" className="space-y-4">
-        <h2 className="text-lg font-semibold text-slate-900">Videre utvikling</h2>
+      <Surface variant="subtle" className="space-y-4 animate-fade-in-up">
+        <h2 className="text-lg font-semibold text-slate-900">Next steps</h2>
         <ul className="space-y-2 text-sm text-slate-600">
-          <li>Integrer sanntidsdata fra et CMS som Sanity eller Contentful.</li>
-          <li>Legg til en booking-modul for utstillinger eller workshops.</li>
-          <li>Utvid galleriet med flere scener eller interaktiv navigasjon.</li>
+          <li>Integrate live content from a CMS such as Sanity or Contentful.</li>
+          <li>Add a booking module for exhibitions or workshops.</li>
+          <li>Expand the gallery with additional scenes or interactive navigation.</li>
         </ul>
       </Surface>
     </div>

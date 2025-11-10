@@ -22,15 +22,16 @@ const MeshStandardMaterial = ({ children, ...props }: any) =>
 
 type ModelProps = {
   modelPath: string;
+  animated?: boolean;
 };
 
-const RotatingModel = ({ modelPath }: ModelProps) => {
+const RotatingModel = ({ modelPath, animated = true }: ModelProps) => {
   const group = useRef<Group>(null);
   const { scene } = useGLTF(modelPath);
   const model = useMemo(() => scene.clone(true), [scene]);
 
   useFrame((_: unknown, delta: number) => {
-    if (group.current) {
+    if (group.current && animated) {
       group.current.rotation.y += delta * 0.35;
     }
   });
@@ -75,7 +76,7 @@ class ModelErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryStat
   }
 
   public componentDidCatch(error: Error): void {
-    console.error('Kunne ikke laste GLB-modellen', error);
+    console.error('Unable to load the GLB model', error);
   }
 
   public componentDidUpdate(prevProps: ErrorBoundaryProps): void {
@@ -95,16 +96,17 @@ class ModelErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryStat
 
 type ModelCanvasProps = {
   modelPath: string;
+  animated?: boolean;
 };
 
-const ModelCanvas = ({ modelPath }: ModelCanvasProps) => {
+const ModelCanvas = ({ modelPath, animated = true }: ModelCanvasProps) => {
   return (
     <ModelErrorBoundary
       resetKey={modelPath}
       fallback={
         <Surface className="flex h-80 w-full items-center justify-center bg-white/60 text-center text-sm text-slate-500">
-          Fant ikke modellen. Legg en GLB-fil i <code className="font-mono text-xs">public/models</code> og oppdater banen i
-          galleri-konfigurasjonen.
+          Could not find the model. Drop a GLB file in <code className="font-mono text-xs">public/models</code> and update
+          the gallery configuration.
         </Surface>
       }
     >
@@ -122,7 +124,7 @@ const ModelCanvas = ({ modelPath }: ModelCanvasProps) => {
               </Mesh>
             }
           >
-            <RotatingModel modelPath={modelPath} />
+            <RotatingModel modelPath={modelPath} animated={animated} />
           </Suspense>
           <Environment preset="apartment" />
         </Canvas>
