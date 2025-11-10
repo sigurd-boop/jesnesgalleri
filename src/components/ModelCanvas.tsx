@@ -1,11 +1,14 @@
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Environment, useGLTF } from '@react-three/drei';
-import { Component, Suspense, createElement, type ReactNode, useRef } from 'react';
+import { Component, Suspense, createElement, type ReactNode, useEffect, useMemo, useRef } from 'react';
 import type { Group } from 'three';
+import { Box3, Vector3 } from 'three';
 
 import { Surface } from './Bits';
 
-const CAMERA_POSITION: [number, number, number] = [0, 1.4, 3.4];
+const CAMERA_POSITION: [number, number, number] = [0, 1.6, 5.2];
+const CAMERA_FOV = 35;
+const MODEL_TARGET_SIZE = 2.4;
 
 const Primitive = ({ children, ...props }: any) => createElement('primitive', props, children);
 const Color = ({ children, ...props }: any) => createElement('color', props, children);
@@ -23,7 +26,8 @@ type ModelProps = {
 
 const RotatingModel = ({ modelPath }: ModelProps) => {
   const group = useRef<Group>(null);
-  const gltf = useGLTF(modelPath);
+  const { scene } = useGLTF(modelPath);
+  const model = useMemo(() => scene.clone(true), [scene]);
 
   useFrame((_: unknown, delta: number) => {
     if (group.current) {
@@ -31,7 +35,26 @@ const RotatingModel = ({ modelPath }: ModelProps) => {
     }
   });
 
-  return <Primitive ref={group} object={gltf.scene} dispose={null} />;
+  useEffect(() => {
+    const boundingBox = new Box3().setFromObject(model);
+    const size = boundingBox.getSize(new Vector3());
+    const maxAxis = Math.max(size.x, size.y, size.z);
+    const scale = maxAxis > 0 ? MODEL_TARGET_SIZE / maxAxis : 1;
+
+    model.scale.setScalar(scale);
+
+    const center = boundingBox.getCenter(new Vector3());
+    model.position.sub(center);
+
+    return () => {
+      model.position.set(0, 0, 0);
+      model.scale.set(1, 1, 1);
+    };
+  }, [model]);
+
+  return (
+    <Primitive ref={group} object={model} dispose={null} />
+  );
 };
 
 type ErrorBoundaryProps = {
@@ -86,7 +109,7 @@ const ModelCanvas = ({ modelPath }: ModelCanvasProps) => {
       }
     >
       <Surface className="h-80 w-full overflow-hidden border-slate-200/80 bg-white/80 p-0">
-        <Canvas camera={{ position: CAMERA_POSITION }} dpr={[1, 2]}>
+        <Canvas camera={{ position: CAMERA_POSITION, fov: CAMERA_FOV }} dpr={[1, 2]}>
           <Color attach="background" args={["#f8fafc"]} />
           <AmbientLight intensity={0.75} />
           <DirectionalLight position={[3, 4, 3]} intensity={1.1} />

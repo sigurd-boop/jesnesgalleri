@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import ModelCanvas from '../components/ModelCanvas';
+import JesneLogoHero from '../components/JesneLogoHero';
 import { ButtonLink, Eyebrow, Muted, PageDescription, PageTitle, Surface } from '../components/Bits';
 import {
   galleryCategories,
@@ -111,16 +112,19 @@ const GalleryPage = () => {
 
   return (
     <div className="space-y-20">
-      <section className="space-y-6">
-        <Eyebrow>digital utstilling</Eyebrow>
-        <PageTitle>Et sømløst, levende galleri</PageTitle>
-        <PageDescription>
-          Tre nøye utvalgte GLB-objekter svever i rommet og roterer rolig slik at materialer, former og lys kommer til sin
-          rett. Bytt ut filbanene for å koble på dine egne 3D-verk.
-        </PageDescription>
-        <ButtonLink href="#veiledning" tone="neutral" className="mt-4 w-fit">
-          Hvordan bruke
-        </ButtonLink>
+      <section className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:items-center">
+        <div className="space-y-6">
+          <Eyebrow>digital utstilling</Eyebrow>
+          <PageTitle>Et sømløst, levende galleri</PageTitle>
+          <PageDescription>
+            Tre nøye utvalgte GLB-objekter svever i rommet og roterer rolig slik at materialer, former og lys kommer til sin
+            rett. Bytt ut filbanene for å koble på dine egne 3D-verk.
+          </PageDescription>
+          <ButtonLink href="#veiledning" tone="neutral" className="mt-4 w-fit">
+            Hvordan bruke
+          </ButtonLink>
+        </div>
+        <JesneLogoHero />
       </section>
 
       <section className="space-y-10">
