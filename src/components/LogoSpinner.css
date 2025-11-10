@@ -1,0 +1,41 @@
+.logo-spinner-frame {
+  width: min(92vw, 380px) !important;
+  aspect-ratio: 20 / 13;
+  max-width: 100%;
+  margin-top: -3rem !important;
+}
+
+@media (min-width: 560px) {
+  .logo-spinner-frame {
+    width: min(88vw, 520px) !important;
+    margin-top: -3.4rem !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .logo-spinner-frame {
+    width: min(80vw, 680px) !important;
+    margin-top: -4.1rem !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .logo-spinner-frame {
+    width: min(70vw, 820px) !important;
+    margin-top: -4.8rem !important;
+  }
+}
+
+@media (min-width: 1280px) {
+  .logo-spinner-frame {
+    width: min(60vw, 960px) !important;
+    margin-top: -5.4rem !important;
+  }
+}
+
+.logo-spinner-frame > div,
+.logo-spinner-frame canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
