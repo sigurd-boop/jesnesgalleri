@@ -4,6 +4,11 @@ En sømløs og stilren 3D-opplevelse bygget med React, TypeScript og Tailwind CS
 roterer rolig i 360° og leverer en rolig, eksklusiv galleriopplevelse. En innebygget, skjult adminflate med Firebase-tilkobling
 lar deg logge inn, redigere og publisere verk direkte fra nettleseren.
 
+## Status
+
+Chrome-logoen er nå låst til den faste størrelsesoppsettet vi testet tidligere, og header-spinneren ser riktig ut på
+både mobil og desktop. Denne README-endringen gjør det enkelt å pushe dagens versjon til en egen branch.
+
 ## Kom i gang
 
 ```bash
