@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ButtonLink, Eyebrow, Muted, PageDescription, PageTitle, Surface } from '../components/Bits';
+import { ButtonLink, Eyebrow, Muted, PageDescription, Surface } from '../components/Bits';
 import TiltedCard from '../components/TiltedCard';
-import GradualBlur from '../components/GradualBlur';
-import DomeGallery from '../components/DomeGallery';
 import ScrollFloat from '../components/ScrollFloat';
 import Masonry, { type MasonryItem } from '../components/Masonry';
 import { cn } from '../lib/cn';
@@ -45,42 +43,47 @@ const fallbackImage =
 
 const MASONRY_BATCH = 9;
 const PROJECT_BATCH = 6;
+const MAX_MASONRY_SHOTS = 24;
+const galleryFilterOptions = [
+  { key: 'commercial', label: 'Commercial work' },
+  { key: 'collection', label: 'Artworks' },
+  { key: 'studio', label: 'Small works' },
+] as const;
+
+type GalleryFilterKey = (typeof galleryFilterOptions)[number]['key'];
+
+const shuffleItems = <T,>(list: T[]): T[] => {
+  const clone = [...list];
+  for (let index = clone.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [clone[index], clone[swapIndex]] = [clone[swapIndex], clone[index]];
+  }
+  return clone;
+};
 
 const GalleryPage = () => {
   const [items, setItems] = useState<GalleryItem[]>(fallbackGalleryItems);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [usingFallback, setUsingFallback] = useState(true);
   const [presentation, setPresentation] = useState<ImagePresentation | null>(null);
-  const [activeFilter, setActiveFilter] = useState<'commercial' | 'collection' | 'studio'>('commercial');
+  const [masonryPreviewImage, setMasonryPreviewImage] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<GalleryFilterKey>('commercial');
   const [masonryVisible, setMasonryVisible] = useState(MASONRY_BATCH);
   const [projectVisible, setProjectVisible] = useState(PROJECT_BATCH);
+  const [masonryPreview, setMasonryPreview] = useState<MasonryItem[]>([]);
 
   useEffect(() => {
     const unsubscribe = subscribeToGalleryItems(
       (nextItems) => {
         if (nextItems.length === 0) {
           setItems(fallbackGalleryItems);
-          setUsingFallback(true);
         } else {
           setItems(nextItems);
-          setUsingFallback(false);
         }
-        setError(null);
-        setLoading(false);
       },
       (subscribeError) => {
         if (!(subscribeError instanceof FirebaseConfigError)) {
           console.error('Unable to fetch gallery items from Firestore', subscribeError);
         }
-        setError(
-          subscribeError instanceof FirebaseConfigError
-            ? 'Firebase is not configured yet. Showing placeholder projects.'
-            : subscribeError.message || 'Unable to reach Firestore. Showing placeholder projects instead.',
-        );
         setItems(fallbackGalleryItems);
-        setUsingFallback(true);
-        setLoading(false);
       },
     );
 
@@ -91,7 +94,7 @@ const GalleryPage = () => {
 
   useEffect(() => {
     setMasonryVisible(MASONRY_BATCH);
-  }, [items]);
+  }, [masonryPreview]);
 
   useEffect(() => {
     setProjectVisible(PROJECT_BATCH);
@@ -111,8 +114,9 @@ const GalleryPage = () => {
 
   const commercialPosts = itemsByCategory.commercial;
 
-  const masonryItems = useMemo<MasonryItem[]>(() => {
-    const derived = items.flatMap((item, itemIndex) => {
+  useEffect(() => {
+    const prioritized = items.filter((item) => item.category === 'commercial' || item.category === 'collection');
+    const derived = prioritized.flatMap((item, itemIndex) => {
       const shots = item.galleryShots?.length ? item.galleryShots : [fallbackImage];
       return shots.map((shot, shotIndex) => ({
         id: `${item.id ?? item.title}-${shotIndex}`,
@@ -126,10 +130,11 @@ const GalleryPage = () => {
     });
 
     if (derived.length) {
-      return derived;
+      setMasonryPreview(shuffleItems(derived).slice(0, MAX_MASONRY_SHOTS));
+      return;
     }
 
-    return Array.from({ length: 6 }, (_, index) => ({
+    const fallbackShots = Array.from({ length: 12 }, (_, index) => ({
       id: `fallback-${index}`,
       img: fallbackImage,
       height: 360 + index * 40,
@@ -137,9 +142,14 @@ const GalleryPage = () => {
       meta: ['Placeholder'],
       images: [fallbackImage],
     }));
+
+    setMasonryPreview(fallbackShots);
   }, [items]);
 
-  const visibleMasonryItems = masonryItems.slice(0, masonryVisible);
+  const visibleMasonryItems = useMemo(
+    () => masonryPreview.slice(0, masonryVisible),
+    [masonryPreview, masonryVisible],
+  );
 
   const filteredCards = useMemo(() => {
     if (activeFilter === 'commercial') {
@@ -181,9 +191,9 @@ const GalleryPage = () => {
         images: shots,
       };
     });
-  }, [activeFilter, collectionShowcase, commercialPosts, studioFeedPosts]);
+  }, [activeFilter, commercialPosts]);
 
-  const hasMoreShots = masonryVisible < masonryItems.length;
+  const hasMoreShots = masonryVisible < masonryPreview.length;
   const visibleCards = filteredCards.slice(0, projectVisible);
   const hasMoreCards = projectVisible < filteredCards.length;
 
@@ -192,7 +202,9 @@ const GalleryPage = () => {
       <section className="grid gap-10 animate-fade-in-up lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center">
         <div className="space-y-6">
           <Eyebrow>digital exhibition</Eyebrow>
-          <PageTitle>Chrome-crafted sculptures for web and retail</PageTitle>
+          <ScrollFloat textClassName="text-4xl font-bold tracking-[-0.02em] text-slate-900 sm:text-5xl lg:text-6xl">
+            Chrome-crafted sculptures for web and retail
+          </ScrollFloat>
           <PageDescription>
             The chrome GLB in the header keeps the brand alive in real time, while the rest of the gallery focuses on
             editorial content that loads instantly on every device. Scroll through commissioned pieces, the Jesnes
@@ -210,12 +222,18 @@ const GalleryPage = () => {
         <ShopSpotlight />
       </section>
 
-      <section className="space-y-10">
+      <section className="space-y-10 pt-12 pb-32 lg:pt-16 lg:pb-48">
         <div className="space-y-6">
-          <ScrollFloat textClassName="text-slate-900">
+          <ScrollFloat
+            containerClassName="mx-auto text-center max-w-[34rem] sm:max-w-[38rem] lg:max-w-[46rem]"
+            textClassName="text-6xl font-bold text-slate-900 sm:text-7xl lg:text-8xl"
+          >
             Chrome-crafted stories float through this gallery
           </ScrollFloat>
-          <ScrollFloat textClassName="text-slate-500">
+          <ScrollFloat
+            containerClassName="mx-auto text-center max-w-[34rem] sm:max-w-[38rem] lg:max-w-[46rem]"
+            textClassName="text-5xl font-semibold text-slate-500 sm:text-6xl lg:text-7xl"
+          >
             Scroll to reveal live shots streaming from Firebase
           </ScrollFloat>
         </div>
@@ -223,21 +241,17 @@ const GalleryPage = () => {
           <Masonry
             items={visibleMasonryItems}
             animateFrom="bottom"
-            onSelect={(item) =>
-              setPresentation({
-                title: item.title ?? 'Jesné gallery piece',
-                description: item.description,
-                meta: item.meta,
-                images: item.images ?? [item.img],
-              })
-            }
+            onSelect={(item) => {
+              const previewImage = item.images?.[0] ?? item.img;
+              setMasonryPreviewImage(previewImage);
+            }}
           />
-          {masonryItems.length ? (
+          {masonryPreview.length ? (
             <div className="flex justify-center">
               {hasMoreShots ? (
                 <button
                   type="button"
-                  onClick={() => setMasonryVisible((prev) => Math.min(prev + MASONRY_BATCH, masonryItems.length))}
+                  onClick={() => setMasonryVisible((prev) => Math.min(prev + MASONRY_BATCH, masonryPreview.length))}
                   className="rounded-full border border-slate-300 px-6 py-2 text-xs uppercase tracking-[0.35em] text-slate-600 transition hover:border-slate-500 hover:text-slate-900"
                 >
                   Load more shots
@@ -250,35 +264,59 @@ const GalleryPage = () => {
         </div>
       </section>
 
-      <section id="projects" className="space-y-8 animate-fade-in-up">
-        <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-3">
-            <h2 className="text-3xl font-semibold text-slate-900">Curated projects</h2>
-            <Muted>Tap a category to filter the commissions, collection stories, or studio feed drops.</Muted>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {(['commercial', 'collection', 'studio'] as const).map((option) => (
+      <section id="projects" className="space-y-8 pt-10 animate-fade-in-up">
+        <header className="space-y-6 text-center">
+          <ScrollFloat
+            containerClassName="mx-auto text-center max-w-[34rem] sm:max-w-[38rem] lg:max-w-[46rem]"
+            textClassName="text-6xl font-bold text-slate-900 sm:text-7xl lg:text-8xl"
+          >
+            Gallery feed
+          </ScrollFloat>
+          <ScrollFloat
+            containerClassName="mx-auto text-center max-w-[34rem] sm:max-w-[38rem] lg:max-w-[46rem]"
+            textClassName="text-5xl font-semibold text-slate-500 sm:text-6xl lg:text-7xl"
+          >
+            Choose a lane: high-polish commercial drops, personal artworks, or the smaller studio experiments.
+          </ScrollFloat>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            {galleryFilterOptions.map(({ key, label }) => (
               <button
-                key={option}
+                key={key}
                 type="button"
-                onClick={() => setActiveFilter(option)}
+                onClick={() => setActiveFilter(key)}
                 className={cn(
                   'rounded-full px-4 py-2 text-[0.65rem] uppercase tracking-[0.35em] transition',
-                  activeFilter === option ? 'bg-slate-900 text-white' : 'border border-slate-300 text-slate-500 hover:text-slate-900',
+                  activeFilter === key ? 'bg-slate-900 text-white' : 'border border-slate-300 text-slate-500 hover:text-slate-900',
                 )}
               >
-                {option}
+                {label}
               </button>
             ))}
           </div>
         </header>
 
         {visibleCards.length ? (
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
             {visibleCards.map((card) => (
-              <Surface
+              <TiltedCard
                 key={card.id}
-                className={cn('flex h-full flex-col gap-4 p-0 transition duration-300 hover:-translate-y-1.5', 'animate-fade-in-up')}
+                imageSrc={card.image}
+                altText={card.title}
+                captionText={card.meta?.join(' • ') || card.title}
+                containerHeight="360px"
+                imageHeight="360px"
+                rotateAmplitude={11}
+                scaleOnHover={1.12}
+                displayOverlayContent
+                overlayContent={
+                  <div className="space-y-1 rounded-[1.5rem] bg-gradient-to-t from-slate-900/90 via-slate-900/30 to-transparent p-4">
+                    {card.meta?.[0] ? (
+                      <p className="text-[0.6rem] uppercase tracking-[0.35em] text-slate-200">{card.meta[0]}</p>
+                    ) : null}
+                    <p className="text-lg font-semibold text-white">{card.title}</p>
+                    {card.description ? <p className="text-sm text-slate-200/90">{card.description}</p> : null}
+                  </div>
+                }
                 onClick={() =>
                   setPresentation({
                     title: card.title,
@@ -287,23 +325,7 @@ const GalleryPage = () => {
                     images: card.images,
                   })
                 }
-              >
-                <div className="overflow-hidden rounded-[1.75rem]">
-                  <img src={card.image} alt={card.title} className="h-72 w-full object-cover" loading="lazy" />
-                </div>
-                <div className="space-y-2 px-6 pb-6">
-                  {card.meta?.[0] ? (
-                    <p className="text-xs uppercase tracking-[0.35em] text-slate-400">{card.meta[0]}</p>
-                  ) : null}
-                  <h3 className="text-xl font-semibold text-slate-900">{card.title}</h3>
-                  {card.description ? <Muted>{card.description}</Muted> : null}
-                  {card.meta?.length ? (
-                    <div className="text-xs uppercase tracking-[0.25em] text-slate-500">
-                      {card.meta.slice(1).join(' • ')}
-                    </div>
-                  ) : null}
-                </div>
-              </Surface>
+              />
             ))}
           </div>
         ) : (
@@ -329,7 +351,42 @@ const GalleryPage = () => {
         ) : null}
       </section>
 
+      {masonryPreviewImage ? (
+        <MasonryPreviewDialog image={masonryPreviewImage} onClose={() => setMasonryPreviewImage(null)} />
+      ) : null}
       {presentation ? <ImagePresentationDialog payload={presentation} onClose={() => setPresentation(null)} /> : null}
+    </div>
+  );
+};
+
+const MasonryPreviewDialog = ({ image, onClose }: { image: string; onClose: () => void }) => {
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 px-4 py-6 backdrop-blur-sm"
+      onClick={onClose}
+      role="presentation"
+    >
+      <div
+        className="relative w-full max-w-3xl overflow-hidden rounded-[1.5rem] border border-white/20 bg-white/80 p-4 shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-5 top-5 rounded-full border border-slate-200/80 bg-white/80 px-3 py-1 text-xs uppercase tracking-[0.35em] text-slate-600 transition hover:border-slate-400 hover:bg-white"
+        >
+          Close
+        </button>
+        <img src={image} alt="Jesné masonry preview" className="h-full w-full object-contain" loading="lazy" />
+      </div>
     </div>
   );
 };

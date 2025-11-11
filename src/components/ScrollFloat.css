@@ -4,13 +4,13 @@
 
 .scroll-float-text {
   display: inline-block;
-  font-size: clamp(2rem, 8vw, 9rem);
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  line-height: 1.2;
-  text-transform: uppercase;
+  font-size: clamp(2.53rem, 12.65vw, 14.95rem);
+  font-weight: 900;
+  line-height: 1.5;
+  text-align: center;
+  white-space: pre-line;
 }
 
-.scroll-float-char {
+.char {
   display: inline-block;
 }
