@@ -2,6 +2,15 @@ import { initializeApp, type FirebaseApp, type FirebaseOptions } from 'firebase/
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
 
+const FALLBACK_CONFIG: FirebaseOptions = {
+  apiKey: 'REDACTED_FIREBASE_API_KEY',
+  authDomain: 'jesnegallery.firebaseapp.com',
+  projectId: 'jesnegallery',
+  storageBucket: 'jesnegallery.firebasestorage.app',
+  messagingSenderId: 'REDACTED_SENDER_ID',
+  appId: 'REDACTED_APP_ID',
+};
+
 export class FirebaseConfigError extends Error {
   constructor(missingKeys: string[]) {
     super(`Firebase-konfigurasjon mangler følgende miljøvariabler: ${missingKeys.join(', ')}`);
@@ -29,8 +38,8 @@ const firebaseOptionFromEnv = (): FirebaseOptions | null => {
 
   if (missing.length > 0) {
     initializationError = new FirebaseConfigError(missing);
-    console.warn(initializationError.message);
-    return null;
+    console.warn(`${initializationError.message}. Bruker fallback-konfigurasjon for lokal testing.`);
+    return FALLBACK_CONFIG;
   }
 
   return config as FirebaseOptions;

@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ButtonLink, Eyebrow, Muted, PageDescription, PageTitle, Surface } from '../components/Bits';
+import TiltedCard from '../components/TiltedCard';
+import GradualBlur from '../components/GradualBlur';
+import DomeGallery from '../components/DomeGallery';
+import ScrollFloat from '../components/ScrollFloat';
+import Masonry, { type MasonryItem } from '../components/Masonry';
 import { cn } from '../lib/cn';
 import {
   galleryCategories,
@@ -10,8 +15,8 @@ import {
 import { FirebaseConfigError } from '../lib/firebase';
 import { fallbackGalleryItems } from '../lib/galleryFallback';
 import { collectionShowcase } from '../data/collectionShowcase';
-import { studioFeedPosts, type StudioFeedPost } from '../data/studioFeed';
-import useShopHighlights, { type ShopHighlightState } from '../hooks/useShopHighlights';
+import { studioFeedPosts } from '../data/studioFeed';
+import useBigCartelProducts from '../hooks/useBigCartelProducts';
 
 const formatDisplayDate = (value?: string | null) => {
   if (!value) {
@@ -38,13 +43,18 @@ type ImagePresentation = {
 const fallbackImage =
   'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1080&q=80';
 
+const MASONRY_BATCH = 9;
+const PROJECT_BATCH = 6;
+
 const GalleryPage = () => {
   const [items, setItems] = useState<GalleryItem[]>(fallbackGalleryItems);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [usingFallback, setUsingFallback] = useState(true);
   const [presentation, setPresentation] = useState<ImagePresentation | null>(null);
-  const shopHighlights = useShopHighlights();
+  const [activeFilter, setActiveFilter] = useState<'commercial' | 'collection' | 'studio'>('commercial');
+  const [masonryVisible, setMasonryVisible] = useState(MASONRY_BATCH);
+  const [projectVisible, setProjectVisible] = useState(PROJECT_BATCH);
 
   useEffect(() => {
     const unsubscribe = subscribeToGalleryItems(
@@ -79,6 +89,14 @@ const GalleryPage = () => {
     };
   }, []);
 
+  useEffect(() => {
+    setMasonryVisible(MASONRY_BATCH);
+  }, [items]);
+
+  useEffect(() => {
+    setProjectVisible(PROJECT_BATCH);
+  }, [activeFilter]);
+
   const itemsByCategory = useMemo<ItemsByCategory>(
     () =>
       galleryCategories.reduce<ItemsByCategory>(
@@ -93,6 +111,82 @@ const GalleryPage = () => {
 
   const commercialPosts = itemsByCategory.commercial;
 
+  const masonryItems = useMemo<MasonryItem[]>(() => {
+    const derived = items.flatMap((item, itemIndex) => {
+      const shots = item.galleryShots?.length ? item.galleryShots : [fallbackImage];
+      return shots.map((shot, shotIndex) => ({
+        id: `${item.id ?? item.title}-${shotIndex}`,
+        img: shot,
+        height: 320 + ((itemIndex + shotIndex) % 3) * 120,
+        title: item.title,
+        description: item.description,
+        meta: [formatDisplayDate(item.postedAt) ?? 'Draft', item.tags?.length ? item.tags.join(', ') : null].filter(Boolean) as string[],
+        images: shots,
+      }));
+    });
+
+    if (derived.length) {
+      return derived;
+    }
+
+    return Array.from({ length: 6 }, (_, index) => ({
+      id: `fallback-${index}`,
+      img: fallbackImage,
+      height: 360 + index * 40,
+      title: 'Jesné study',
+      meta: ['Placeholder'],
+      images: [fallbackImage],
+    }));
+  }, [items]);
+
+  const visibleMasonryItems = masonryItems.slice(0, masonryVisible);
+
+  const filteredCards = useMemo(() => {
+    if (activeFilter === 'commercial') {
+      return commercialPosts.map((item) => {
+        const shots = item.galleryShots?.length ? item.galleryShots : [fallbackImage];
+        return {
+          id: item.id ?? item.title,
+          title: item.title,
+          description: item.description,
+          meta: [formatDisplayDate(item.postedAt) ?? 'Draft', item.tags?.length ? item.tags.join(', ') : null].filter(Boolean) as string[],
+          image: shots[0],
+          images: shots,
+        };
+      });
+    }
+
+    if (activeFilter === 'collection') {
+      return collectionShowcase.map((item) => {
+        const shots = item.galleryShots?.length ? item.galleryShots : [fallbackImage];
+        return {
+          id: item.id,
+          title: item.title,
+          description: item.description,
+          meta: [`Year ${item.year}`, `Mood ${item.mood}`],
+          image: shots[0],
+          images: shots,
+        };
+      });
+    }
+
+    return studioFeedPosts.map((post) => {
+      const shots = post.images.length ? post.images : [fallbackImage];
+      return {
+        id: post.id,
+        title: post.title,
+        description: post.caption,
+        meta: [post.postedAt, post.location ? `Location ${post.location}` : null].filter(Boolean) as string[],
+        image: shots[0],
+        images: shots,
+      };
+    });
+  }, [activeFilter, collectionShowcase, commercialPosts, studioFeedPosts]);
+
+  const hasMoreShots = masonryVisible < masonryItems.length;
+  const visibleCards = filteredCards.slice(0, projectVisible);
+  const hasMoreCards = projectVisible < filteredCards.length;
+
   return (
     <div className="space-y-16">
       <section className="grid gap-10 animate-fade-in-up lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center">
@@ -105,77 +199,107 @@ const GalleryPage = () => {
             collection, and a preview of the BigCartel shop pipeline.
           </PageDescription>
           <div className="flex flex-wrap gap-3">
-            <ButtonLink href="#commissioned" tone="neutral">
-              Commissioned feed
+            <ButtonLink href="#projects" tone="neutral">
+              Browse projects
             </ButtonLink>
-            <ButtonLink href="https://jesnesgalleri.bigcartel.com" target="_blank" rel="noreferrer">
+            <ButtonLink href="/shop">
               Visit shop
             </ButtonLink>
           </div>
         </div>
-        <ShopSpotlight {...shopHighlights} />
+        <ShopSpotlight />
       </section>
 
-      <section id="commissioned" className="space-y-8 animate-fade-in-up">
+      <section className="space-y-10">
+        <div className="space-y-6">
+          <ScrollFloat textClassName="text-slate-900">
+            Chrome-crafted stories float through this gallery
+          </ScrollFloat>
+          <ScrollFloat textClassName="text-slate-500">
+            Scroll to reveal live shots streaming from Firebase
+          </ScrollFloat>
+        </div>
+        <div className="mt-6 space-y-6">
+          <Masonry
+            items={visibleMasonryItems}
+            animateFrom="bottom"
+            onSelect={(item) =>
+              setPresentation({
+                title: item.title ?? 'Jesné gallery piece',
+                description: item.description,
+                meta: item.meta,
+                images: item.images ?? [item.img],
+              })
+            }
+          />
+          {masonryItems.length ? (
+            <div className="flex justify-center">
+              {hasMoreShots ? (
+                <button
+                  type="button"
+                  onClick={() => setMasonryVisible((prev) => Math.min(prev + MASONRY_BATCH, masonryItems.length))}
+                  className="rounded-full border border-slate-300 px-6 py-2 text-xs uppercase tracking-[0.35em] text-slate-600 transition hover:border-slate-500 hover:text-slate-900"
+                >
+                  Load more shots
+                </button>
+              ) : (
+                <p className="text-xs uppercase tracking-[0.35em] text-slate-400">No more shots in this batch</p>
+              )}
+            </div>
+          ) : null}
+        </div>
+      </section>
+
+      <section id="projects" className="space-y-8 animate-fade-in-up">
         <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-3">
-            <h2 className="text-3xl font-semibold text-slate-900">Commissioned work</h2>
-            <Muted>
-              Posts are editable from the admin dashboard. Tap a card to read the story, dates, and attachable campaign
-              imagery. Animations are paused for a calm, editorial look.
-            </Muted>
+            <h2 className="text-3xl font-semibold text-slate-900">Curated projects</h2>
+            <Muted>Tap a category to filter the commissions, collection stories, or studio feed drops.</Muted>
           </div>
-          <ButtonLink tone="neutral" href={error ? '#guide' : '#collection'}>
-            {error ? 'See setup guide' : 'Jump to collection'}
-          </ButtonLink>
+          <div className="flex flex-wrap gap-2">
+            {(['commercial', 'collection', 'studio'] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => setActiveFilter(option)}
+                className={cn(
+                  'rounded-full px-4 py-2 text-[0.65rem] uppercase tracking-[0.35em] transition',
+                  activeFilter === option ? 'bg-slate-900 text-white' : 'border border-slate-300 text-slate-500 hover:text-slate-900',
+                )}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
         </header>
 
-        {commercialPosts.length ? (
+        {visibleCards.length ? (
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {commercialPosts.map((item) => (
-            <Surface
-              key={item.id ?? item.title}
-              className={cn(
-                'flex h-full flex-col gap-4 p-0 transition duration-300 hover:-translate-y-1.5',
-                'animate-fade-in-up',
-              )}
-              onClick={() =>
-                setPresentation({
-                  title: item.title,
-                  description: item.description,
-                  meta: [
-                    formatDisplayDate(item.postedAt) ?? 'Draft',
-                    item.tags?.length ? `Tags: ${item.tags.join(', ')}` : null,
-                    `Model: ${item.modelPath}`,
-                  ].filter(Boolean) as string[],
-                  images: item.galleryShots?.length ? item.galleryShots : [fallbackImage],
-                })
-              }
-            >
-              <div className="overflow-hidden rounded-[1.75rem]">
-                <img
-                  src={item.galleryShots?.[0] ?? fallbackImage}
-                  alt={item.title}
-                  className="h-72 w-full object-cover"
-                  loading="lazy"
-                />
-              </div>
+            {visibleCards.map((card) => (
+              <Surface
+                key={card.id}
+                className={cn('flex h-full flex-col gap-4 p-0 transition duration-300 hover:-translate-y-1.5', 'animate-fade-in-up')}
+                onClick={() =>
+                  setPresentation({
+                    title: card.title,
+                    description: card.description,
+                    meta: card.meta,
+                    images: card.images,
+                  })
+                }
+              >
+                <div className="overflow-hidden rounded-[1.75rem]">
+                  <img src={card.image} alt={card.title} className="h-72 w-full object-cover" loading="lazy" />
+                </div>
                 <div className="space-y-2 px-6 pb-6">
-                  <p className="text-xs uppercase tracking-[0.35em] text-slate-400">
-                    {formatDisplayDate(item.postedAt) ?? 'Draft'}
-                  </p>
-                  <h3 className="text-xl font-semibold text-slate-900">{item.title}</h3>
-                  <Muted>{item.description}</Muted>
-                  {item.tags?.length ? (
-                    <div className="flex flex-wrap gap-2">
-                      {item.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="rounded-full border border-slate-200 px-3 py-1 text-xs uppercase tracking-[0.2em] text-slate-500"
-                        >
-                          {tag}
-                        </span>
-                      ))}
+                  {card.meta?.[0] ? (
+                    <p className="text-xs uppercase tracking-[0.35em] text-slate-400">{card.meta[0]}</p>
+                  ) : null}
+                  <h3 className="text-xl font-semibold text-slate-900">{card.title}</h3>
+                  {card.description ? <Muted>{card.description}</Muted> : null}
+                  {card.meta?.length ? (
+                    <div className="text-xs uppercase tracking-[0.25em] text-slate-500">
+                      {card.meta.slice(1).join(' • ')}
                     </div>
                   ) : null}
                 </div>
@@ -184,123 +308,29 @@ const GalleryPage = () => {
           </div>
         ) : (
           <Surface variant="subtle" className="border-dashed text-sm text-slate-500">
-            No commissioned posts yet. Use the admin dashboard to publish the first entry.
+            No entries in this category yet.
           </Surface>
         )}
-      </section>
 
-      <section id="collection" className="space-y-10 animate-fade-in-up">
-        <div className="space-y-3">
-          <h2 className="text-3xl font-semibold text-slate-900">Collection — fixed set</h2>
-          <Muted>
-            This section preserves the Jesnes signature pieces as static stories. Admins can update captions and imagery, but
-            the GLB itself lives solely in the hero logo for performance.
-          </Muted>
-        </div>
-        <div className="grid gap-8 lg:grid-cols-3">
-          {collectionShowcase.map((item) => (
-            <Surface
-              key={item.id}
-              className={cn(
-                'flex h-full flex-col gap-4 p-0 transition duration-300 hover:-translate-y-1.5',
-                'animate-fade-in-up',
-              )}
-              onClick={() =>
-                setPresentation({
-                  title: item.title,
-                  description: item.description,
-                  meta: [`Year: ${item.year}`, `Mood: ${item.mood}`],
-                  images: item.galleryShots?.length ? item.galleryShots : [fallbackImage],
-                })
-              }
-            >
-              <div className="overflow-hidden rounded-[1.75rem] bg-white/70">
-                <img
-                  src={item.galleryShots?.[0] ?? fallbackImage}
-                  alt={item.title}
-                  className="h-72 w-full object-cover"
-                  loading="lazy"
-                />
-              </div>
-              <div className="space-y-3 px-6 pb-6">
-                <p className="text-xs uppercase tracking-[0.35em] text-slate-400">{item.year}</p>
-                <h3 className="text-xl font-semibold text-slate-900">{item.title}</h3>
-                <Muted>{item.description}</Muted>
-                <p className="text-sm font-medium text-slate-600">Mood: {item.mood}</p>
-              </div>
-            </Surface>
-          ))}
-        </div>
-
-        <StudioFeed
-          onOpen={(post) =>
-            setPresentation({
-              title: post.title,
-              description: post.caption,
-              meta: [post.postedAt, post.location ? `Location: ${post.location}` : null].filter(Boolean) as string[],
-              images: post.images.length ? post.images : [fallbackImage],
-            })
-          }
-        />
-      </section>
-
-      <Surface id="guide" variant="subtle" className="space-y-4 border-dashed">
-        <h3 className="text-lg font-semibold text-slate-900">How to update the chrome logo GLB</h3>
-        <ol className="space-y-3 text-sm text-slate-600">
-          <li>1. Drop the new GLB inside <code className="font-mono text-xs">public/models</code> and update the header path.</li>
-          <li>2. Commissioned posts and collection entries use static imagery for speed; update those via Firestore or the admin view.</li>
-          <li>3. Keep feed images under 2MB each so the experience stays silky on mobile.</li>
-        </ol>
-        {error ? <Muted className="text-xs text-rose-600">{error}</Muted> : null}
-        {loading && !error ? <Muted className="text-xs">Loading data from Firestore…</Muted> : null}
-        {!loading && usingFallback && !error ? (
-          <Muted className="text-xs">Showing placeholder content until Firestore is connected.</Muted>
+        {filteredCards.length ? (
+          <div className="flex justify-center">
+            {hasMoreCards ? (
+              <button
+                type="button"
+                onClick={() => setProjectVisible((prev) => Math.min(prev + PROJECT_BATCH, filteredCards.length))}
+                className="rounded-full border border-slate-300 px-6 py-2 text-xs uppercase tracking-[0.35em] text-slate-600 transition hover:border-slate-500 hover:text-slate-900"
+              >
+                Load more projects
+              </button>
+            ) : (
+              <p className="text-xs uppercase tracking-[0.35em] text-slate-400">You reached the end</p>
+            )}
+          </div>
         ) : null}
-      </Surface>
+      </section>
 
       {presentation ? <ImagePresentationDialog payload={presentation} onClose={() => setPresentation(null)} /> : null}
     </div>
-  );
-};
-
-type ShopSpotlightProps = ShopHighlightState;
-
-const ShopSpotlight = ({ loading, products, error }: ShopSpotlightProps) => {
-  const featured = products[0];
-
-  return (
-    <Surface className="space-y-4 animate-fade-in-up">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.35em] text-slate-400">BigCartel preview</p>
-          <h3 className="text-lg font-semibold text-slate-900">Shop highlight</h3>
-        </div>
-        {loading ? <span className="text-xs text-slate-500">Syncing…</span> : null}
-      </div>
-      {featured ? (
-        <div className="flex flex-col gap-4">
-          <div className="overflow-hidden rounded-2xl border border-white/60 bg-white/60">
-            <img
-              src={featured.imageUrl}
-              alt={featured.title}
-              className="h-48 w-full object-cover"
-              loading="lazy"
-            />
-          </div>
-          <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-slate-400">{featured.status === 'sold' ? 'Sold out' : 'Available'}</p>
-            <p className="text-xl font-semibold text-slate-900">{featured.title}</p>
-            <p className="text-sm text-slate-600">{featured.price}</p>
-          </div>
-          <ButtonLink href={featured.url} target="_blank" rel="noreferrer">
-            Shop highlight
-          </ButtonLink>
-        </div>
-      ) : (
-        <Muted>No products yet. Connect the BigCartel API to surface featured items.</Muted>
-      )}
-      {error ? <Muted className="text-xs text-amber-600">{error}</Muted> : null}
-    </Surface>
   );
 };
 
@@ -392,75 +422,58 @@ const ImagePresentationDialog = ({
   );
 };
 
-const StudioFeed = ({ onOpen }: { onOpen: (post: StudioFeedPost) => void }) => {
-  const [activeImageIndex, setActiveImageIndex] = useState<Record<string, number>>({});
-
-  const handleStep = (postId: string, direction: number, total: number) => {
-    setActiveImageIndex((previous) => {
-      const nextIndex = ((previous[postId] ?? 0) + direction + total) % total;
-      return { ...previous, [postId]: nextIndex };
-    });
+const ShopSpotlight = () => {
+  const { products, loading, error } = useBigCartelProducts();
+  const formatPrice = (price: string) => {
+    const value = Number(price);
+    if (Number.isNaN(value)) {
+      return price;
+    }
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
   };
 
+  const cards = products.length ? products.slice(0, 4) : [];
+
   return (
-    <div className="space-y-4 animate-fade-in-up">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+    <Surface className="space-y-5 animate-fade-in-up">
+      <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Studio feed</p>
-          <h3 className="text-xl font-semibold text-slate-900">Instagram-ready stories</h3>
+          <p className="text-xs uppercase tracking-[0.35em] text-slate-400">BigCartel preview</p>
+          <h3 className="text-lg font-semibold text-slate-900">Shop highlight</h3>
         </div>
-        <Muted className="text-sm">
-          Swipe horizontally on mobile. Admins can keep this feed fresh without touching the collection.
-        </Muted>
+        {loading ? <span className="text-xs text-slate-500">Syncing…</span> : null}
       </div>
-      <div className="flex gap-4 overflow-x-auto pb-2">
-        {studioFeedPosts.map((post) => {
-          const images = post.images.length ? post.images : ['https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1080&q=80'];
-          const index = activeImageIndex[post.id] ?? 0;
-          const activeImage = images[index];
-          return (
-            <article
-              key={post.id}
-              className="min-w-[260px] max-w-[260px] flex-shrink-0 rounded-[2rem] border border-slate-200/60 bg-white/80 p-4 shadow-[0_20px_45px_-35px_rgba(15,23,42,0.75)]"
-              onClick={() => onOpen(post)}
-            >
-              <div className="relative overflow-hidden rounded-2xl">
-                <img src={activeImage} alt={post.title} className="h-56 w-full object-cover" loading="lazy" />
-                {images.length > 1 ? (
-                  <div className="absolute inset-0 flex items-center justify-between px-2 text-white">
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handleStep(post.id, -1, images.length);
-                      }}
-                      className="rounded-full bg-black/40 px-2 py-1 text-xs backdrop-blur"
-                    >
-                      ‹
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handleStep(post.id, 1, images.length);
-                      }}
-                      className="rounded-full bg-black/40 px-2 py-1 text-xs backdrop-blur"
-                    >
-                      ›
-                    </button>
-                  </div>
-                ) : null}
+
+      {cards.length ? (
+        <div className="grid gap-4 md:grid-cols-2">
+          {cards.map((product) => (
+            <Surface key={product.id} className="space-y-4">
+              <div className="overflow-hidden rounded-2xl border border-white/60 bg-white/80">
+                <img
+                  src={product.images?.[0]?.secure_url ?? fallbackImage}
+                  alt={product.name}
+                  className="h-48 w-full object-cover"
+                  loading="lazy"
+                />
               </div>
-              <div className="mt-4 space-y-1">
-                <p className="text-xs uppercase tracking-[0.35em] text-slate-400">{post.postedAt}</p>
-                <h4 className="text-base font-semibold text-slate-900">{post.title}</h4>
-                <p className="text-sm text-slate-600">{post.caption}</p>
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-[0.35em] text-slate-400">{formatPrice(product.price)}</p>
+                <h4 className="text-lg font-semibold text-slate-900">{product.name}</h4>
               </div>
-            </article>
-          );
-        })}
-      </div>
-    </div>
+              <ButtonLink href={`https://jesne.bigcartel.com${product.url}`} target="_blank" rel="noreferrer" className="w-full">
+                View product
+              </ButtonLink>
+            </Surface>
+          ))}
+        </div>
+      ) : (
+        <Surface variant="subtle" className="border-dashed text-sm text-slate-500">
+          {error ? 'No products available right now.' : 'Add items to your BigCartel store to surface them here.'}
+        </Surface>
+      )}
+
+      {error && !loading ? <Muted className="text-xs text-amber-600">{error}</Muted> : null}
+    </Surface>
   );
 };
 
