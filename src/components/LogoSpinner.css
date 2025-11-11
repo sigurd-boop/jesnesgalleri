@@ -1,41 +1,39 @@
 .logo-spinner-frame {
-  width: min(92vw, 380px) !important;
-  aspect-ratio: 20 / 13;
-  max-width: 100%;
-  margin-top: -3rem !important;
+  width: min(1180px, 92vw);
+  aspect-ratio: 16 / 5;
+  margin: -5rem auto 2rem;
+  min-height: clamp(240px, 40vw, 520px);
 }
 
-@media (min-width: 560px) {
+@media (max-width: 640px) {
   .logo-spinner-frame {
-    width: min(88vw, 520px) !important;
-    margin-top: -3.4rem !important;
-  }
-}
-
-@media (min-width: 768px) {
-  .logo-spinner-frame {
-    width: min(80vw, 680px) !important;
-    margin-top: -4.1rem !important;
+    margin-top: -4rem;
+    margin-bottom: 1rem;
+    aspect-ratio: 16 / 6.4;
+    min-height: clamp(200px, 55vw, 420px);
   }
 }
 
 @media (min-width: 1024px) {
   .logo-spinner-frame {
-    width: min(70vw, 820px) !important;
-    margin-top: -4.8rem !important;
+    width: min(1400px, 88vw);
+    margin-top: -6.5rem;
+    margin-bottom: 2.25rem;
+    min-height: clamp(320px, 34vw, 560px);
   }
 }
 
-@media (min-width: 1280px) {
+@media (min-width: 1440px) {
   .logo-spinner-frame {
-    width: min(60vw, 960px) !important;
-    margin-top: -5.4rem !important;
+    width: min(1600px, 80vw);
+    aspect-ratio: 16 / 4.2;
+    margin-top: -5.5rem;
+    margin-bottom: 2.5rem;
+    min-height: 640px;
   }
 }
 
-.logo-spinner-frame > div,
-.logo-spinner-frame canvas {
+.logo-spinner-canvas {
   width: 100% !important;
   height: 100% !important;
-  display: block;
 }

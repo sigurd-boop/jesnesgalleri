@@ -3,6 +3,7 @@ import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
 import GalleryPage from './pages/Gallery';
 import ContactPage from './pages/Contact';
 import GithubPage from './pages/Github';
+import ShopPage from './pages/Shop';
 import LoginPage from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import { cn } from './lib/cn';
@@ -24,9 +25,9 @@ type ExternalNavItem = {
 
 const navItems: Array<InternalNavItem | ExternalNavItem> = [
   { to: '/', label: 'Gallery', type: 'internal' },
+  { to: '/shop', label: 'Shop', type: 'internal' },
   { to: '/contact', label: 'Contact', type: 'internal' },
   { to: '/github', label: 'GitHub', type: 'internal' },
-  { href: 'https://jesnesgalleri.bigcartel.com', label: 'Shop', type: 'external' },
 ];
 
 const App = () => {
@@ -63,21 +64,15 @@ const App = () => {
     <div className="min-h-screen bg-slate-100">
       <header
         className={cn(
-          'sticky top-0 z-30 border-b border-white/60 bg-slate-100/90 backdrop-blur-sm shadow-[0_6px_18px_-14px_rgba(15,23,42,0.55)] supports-[backdrop-filter]:backdrop-blur transition-transform duration-300 ease-out lg:static',
+          'sticky top-0 z-30 border-b border-white/60 bg-slate-100/95 backdrop-blur-sm shadow-[0_6px_18px_-14px_rgba(15,23,42,0.55)] supports-[backdrop-filter]:backdrop-blur transition-transform duration-300 ease-out lg:static',
           headerHidden ? '-translate-y-full opacity-0 pointer-events-none sm:opacity-100 sm:translate-y-0 sm:pointer-events-auto' : 'translate-y-0 opacity-100',
         )}
       >
-        <div className="mx-auto flex max-w-6xl flex-col items-center gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6 sm:py-4 lg:gap-6">
-          <NavLink
-            to="/"
-            className="flex w-full flex-col items-center sm:flex sm:flex-1 sm:min-w-0 sm:items-center sm:justify-start sm:gap-4"
-            aria-label="Jesnes Gallery home"
-          >
-            <LogoSpinner />
-          </NavLink>
+        <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-2 px-4 py-4 sm:px-6">
+          <LogoSpinner />
           <nav
             className={cn(
-              'grid w-full grid-cols-2 gap-2 overflow-hidden text-center transition-all duration-300 ease-out sm:flex sm:flex-1 sm:min-w-0 sm:flex-wrap sm:items-center sm:justify-end sm:gap-2 sm:overflow-visible',
+              'grid w-full grid-cols-2 gap-2 overflow-hidden text-center transition-all duration-300 ease-out sm:flex sm:flex-1 sm:min-w-0 sm:flex-wrap sm:items-center sm:justify-center sm:gap-2 sm:overflow-visible',
               headerHidden ? 'max-h-0 opacity-0 pointer-events-none sm:max-h-none sm:opacity-100 sm:pointer-events-auto' : 'max-h-24 opacity-100',
             )}
           >
@@ -117,6 +112,7 @@ const App = () => {
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/kontakt" element={<Navigate to="/contact" replace />} />
           <Route path="/github" element={<GithubPage />} />
+          <Route path="/shop" element={<ShopPage />} />
           <Route
             path={ADMIN_ROUTE_PATH}
             element={
