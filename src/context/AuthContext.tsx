@@ -9,6 +9,7 @@ import {
 } from 'react';
 import {
   onAuthStateChanged,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
   type User,
@@ -28,6 +29,7 @@ type AuthContextValue = {
   adminEmailsConfigured: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -100,6 +102,14 @@ export const AuthProvider = ({ children }: ProviderProps) => {
     await signOut(auth);
   }, []);
 
+  const resetPassword = useCallback(async (email: string) => {
+    const auth = getFirebaseAuth();
+    if (!auth) {
+      throw getFirebaseInitializationError() ?? new Error('Firebase er ikke klar ennå.');
+    }
+    await sendPasswordResetEmail(auth, email);
+  }, []);
+
   const isAdmin = useMemo(() => {
     if (!user?.email) {
       return false;
@@ -117,6 +127,7 @@ export const AuthProvider = ({ children }: ProviderProps) => {
     adminEmailsConfigured: adminEmails.length > 0,
     login,
     logout,
+    resetPassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
