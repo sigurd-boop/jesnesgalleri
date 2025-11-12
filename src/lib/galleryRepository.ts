@@ -53,13 +53,14 @@ const optionalStringArray = (input: unknown): string[] | undefined => {
   return cleaned.length ? cleaned : undefined;
 };
 
-export const galleryCategories = ['commercial', 'collection'] as const;
+export const galleryCategories = ['commercial', 'collection', 'studio'] as const;
 
 export type GalleryCategory = (typeof galleryCategories)[number];
 
 export const galleryCategoryLabels: Record<GalleryCategory, string> = {
   commercial: 'Commissioned work',
   collection: 'Collection',
+  studio: 'Small works',
 };
 
 const isGalleryCategory = (value: unknown): value is GalleryCategory =>
@@ -75,6 +76,9 @@ export type GalleryItem = {
   galleryShots?: string[];
   postedAt?: string;
   tags?: string[];
+  imageStoragePath?: string;
+  galleryShotStoragePaths?: string[];
+  displayOrder?: number;
   createdAt?: number;
   updatedAt?: number;
 };
@@ -88,6 +92,9 @@ export type GalleryItemInput = {
   galleryShots?: string[] | null;
   postedAt?: string | null;
   tags?: string[] | null;
+  imageStoragePath?: string | null;
+  galleryShotStoragePaths?: string[] | null;
+  displayOrder?: number | null;
 };
 
 type GalleryItemDocument = Omit<GalleryItemInput, 'category'> & {
@@ -109,6 +116,12 @@ const mapDocument = (snapshotId: string, data: DocumentData): GalleryItem => {
     galleryShots: optionalStringArray(candidate.galleryShots),
     postedAt: optionalString(candidate.postedAt),
     tags: optionalStringArray(candidate.tags),
+    imageStoragePath: optionalString(candidate.imageStoragePath),
+    galleryShotStoragePaths: optionalStringArray(candidate.galleryShotStoragePaths),
+    displayOrder:
+      typeof candidate.displayOrder === 'number' && !Number.isNaN(candidate.displayOrder)
+        ? candidate.displayOrder
+        : undefined,
     createdAt: toMillis(candidate.createdAt),
     updatedAt: toMillis(candidate.updatedAt),
   };
@@ -135,7 +148,14 @@ export const subscribeToGalleryItems = (
     getCollection(db),
     (snapshot) => {
       const items = snapshot.docs.map((docSnapshot) => mapDocument(docSnapshot.id, docSnapshot.data()));
-      items.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+      items.sort((a, b) => {
+        const orderA = typeof a.displayOrder === 'number' ? a.displayOrder : Number.POSITIVE_INFINITY;
+        const orderB = typeof b.displayOrder === 'number' ? b.displayOrder : Number.POSITIVE_INFINITY;
+        if (orderA !== orderB) {
+          return orderA - orderB;
+        }
+        return (b.createdAt ?? 0) - (a.createdAt ?? 0);
+      });
       onItems(items);
     },
     (error) => {
@@ -153,6 +173,10 @@ const normalizeInput = (data: GalleryItemInput): GalleryItemInput => ({
   galleryShots: data.galleryShots?.map((entry) => entry.trim()).filter(Boolean) ?? null,
   postedAt: data.postedAt?.trim() ?? null,
   tags: data.tags?.map((entry) => entry.trim()).filter(Boolean) ?? null,
+  imageStoragePath: data.imageStoragePath ? data.imageStoragePath.trim() : null,
+  galleryShotStoragePaths: data.galleryShotStoragePaths?.map((entry) => entry.trim()).filter(Boolean) ?? null,
+  displayOrder:
+    typeof data.displayOrder === 'number' && !Number.isNaN(data.displayOrder) ? data.displayOrder : null,
 });
 
 export const createGalleryItem = async (data: GalleryItemInput) => {
