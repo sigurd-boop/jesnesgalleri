@@ -237,7 +237,7 @@ const GalleryPage = () => {
             Scroll to reveal live shots streaming from Firebase
           </ScrollFloat>
         </div>
-        <div className="mt-6 space-y-6">
+        <div className="mt-6 space-y-6 hidden sm:block">
           <Masonry
             items={visibleMasonryItems}
             animateFrom="bottom"
