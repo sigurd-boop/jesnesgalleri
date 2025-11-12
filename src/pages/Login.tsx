@@ -13,11 +13,13 @@ type LocationState = {
 
 const LoginPage = () => {
   const location = useLocation();
-  const { user, isAdmin, login, loading, firebaseReady, initializationError } = useAuth();
+  const { user, isAdmin, login, resetPassword, loading, firebaseReady, initializationError } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
 
   const redirectPath = (location.state as LocationState | null)?.from?.pathname ?? ADMIN_ROUTE_PATH;
 
@@ -29,6 +31,7 @@ const LoginPage = () => {
     event.preventDefault();
     setSubmitting(true);
     setError(null);
+    setResetMessage(null);
 
     try {
       await login(email, password);
@@ -38,6 +41,28 @@ const LoginPage = () => {
       setError(message);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!email) {
+      setError('Skriv inn e-posten din først for å motta tilbakestillingslenken.');
+      return;
+    }
+    setError(null);
+    setResetMessage(null);
+    setResetting(true);
+    try {
+      await resetPassword(email);
+      setResetMessage('Vi sendte en lenke for å tilbakestille passordet til adressen du oppga.');
+    } catch (resetError) {
+      const message =
+        resetError instanceof Error
+          ? resetError.message
+          : 'Kunne ikke sende tilbakestillingslenken. Prøv igjen senere.';
+      setError(message);
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -85,6 +110,7 @@ const LoginPage = () => {
               />
             </label>
             {error ? <Muted className="text-xs text-rose-600">{error}</Muted> : null}
+            {resetMessage ? <Muted className="text-xs text-emerald-600">{resetMessage}</Muted> : null}
             <button
               type="submit"
               disabled={submitting}
@@ -93,6 +119,14 @@ const LoginPage = () => {
               Logg inn
             </button>
           </form>
+          <button
+            type="button"
+            onClick={handlePasswordReset}
+            disabled={resetting}
+            className="w-full text-center text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 transition-colors hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Glemte passordet?
+          </button>
           <Muted className="text-xs">
             Tips: Bruk en dedikert admin-bruker i Firebase Authentication. Tilgangen begrenses i miljøvariabelen
             <code className="ml-1 rounded bg-slate-900/90 px-1 py-0.5 font-mono text-[0.6rem] text-white">
