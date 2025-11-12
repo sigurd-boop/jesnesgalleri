@@ -13,18 +13,25 @@ import {
   type GalleryItemInput,
 } from '../lib/galleryRepository';
 import { ButtonLink, Eyebrow, Muted, PageDescription, PageTitle, Surface } from '../components/Bits';
+import { uploadImageFile, deleteImageAtPath } from '../lib/storage';
 import { useEffectOnce } from '../utils/useEffectOnce';
-
-const emptyForm: GalleryItemInput = {
-  title: '',
-  description: '',
-  modelPath: '',
-  category: 'collection',
-  imageUrl: null,
-};
 
 type FormState = GalleryItemInput & {
   id?: string;
+};
+
+const DEFAULT_MODEL_PATH = '/models/textured.glb';
+
+const emptyForm: FormState = {
+  title: '',
+  description: '',
+  modelPath: DEFAULT_MODEL_PATH,
+  category: 'collection',
+  imageUrl: null,
+  imageStoragePath: null,
+  galleryShots: [],
+  galleryShotStoragePaths: [],
+  displayOrder: null,
 };
 
 const AdminDashboard = () => {
@@ -35,6 +42,7 @@ const AdminDashboard = () => {
   const [formState, setFormState] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [previewFile, setPreviewFile] = useState<File | null>(null);
 
   useEffectOnce(() =>
     subscribeToGalleryItems(
@@ -65,6 +73,7 @@ const AdminDashboard = () => {
   const resetForm = () => {
     setFormState(emptyForm);
     setSuccessMessage(null);
+    setPreviewFile(null);
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -73,15 +82,37 @@ const AdminDashboard = () => {
     setError(null);
     setSuccessMessage(null);
 
-    const payload: GalleryItemInput = {
-      title: formState.title,
-      description: formState.description,
-      modelPath: formState.modelPath,
-      category: formState.category,
-      imageUrl: formState.imageUrl && formState.imageUrl.length > 0 ? formState.imageUrl : null,
+    const nextState: FormState = {
+      ...formState,
     };
 
     try {
+      if (previewFile) {
+        if (nextState.imageStoragePath) {
+          await deleteImageAtPath(nextState.imageStoragePath);
+        }
+        const uploadedPreview = await uploadImageFile(previewFile, 'gallery/previews');
+        nextState.imageUrl = uploadedPreview.url;
+        nextState.imageStoragePath = uploadedPreview.path;
+      }
+
+      const payload: GalleryItemInput = {
+        title: nextState.title,
+        description: nextState.description,
+        modelPath: DEFAULT_MODEL_PATH,
+        category: nextState.category,
+        imageUrl: nextState.imageUrl ?? null,
+        galleryShots: null,
+        postedAt: nextState.postedAt ?? null,
+        tags: nextState.tags ?? null,
+        imageStoragePath: nextState.imageStoragePath ?? null,
+        galleryShotStoragePaths: null,
+        displayOrder:
+          typeof nextState.displayOrder === 'number' && !Number.isNaN(nextState.displayOrder)
+            ? nextState.displayOrder
+            : null,
+      };
+
       if (formState.id) {
         await updateGalleryItem(formState.id, payload);
         setSuccessMessage('Oppføringen ble oppdatert.');
@@ -90,6 +121,7 @@ const AdminDashboard = () => {
         setSuccessMessage('Ny oppføring ble lagt til.');
       }
       setFormState(emptyForm);
+      setPreviewFile(null);
     } catch (submitError) {
       console.error('Klarte ikke å lagre oppføringen', submitError);
       setError((submitError as Error).message ?? 'Lagring mislyktes.');
@@ -106,8 +138,12 @@ const AdminDashboard = () => {
       modelPath: item.modelPath,
       category: item.category,
       imageUrl: item.imageUrl ?? null,
+      imageStoragePath: item.imageStoragePath ?? null,
+      galleryShots: item.galleryShots ?? [],
+      galleryShotStoragePaths: item.galleryShotStoragePaths ?? [],
     });
     setSuccessMessage(null);
+    setPreviewFile(null);
   };
 
   const handleDelete = async (id: string) => {
@@ -117,7 +153,14 @@ const AdminDashboard = () => {
     }
 
     try {
+      const item = items.find((entry) => entry.id === id);
       await deleteGalleryItem(id);
+      if (item) {
+        await deleteImageAtPath(item.imageStoragePath);
+        if (item.galleryShotStoragePaths?.length) {
+          await Promise.all(item.galleryShotStoragePaths.map((path) => deleteImageAtPath(path)));
+        }
+      }
     } catch (deleteError) {
       console.error('Klarte ikke å slette oppføringen', deleteError);
       setError((deleteError as Error).message ?? 'Sletting mislyktes.');
@@ -128,24 +171,21 @@ const AdminDashboard = () => {
     <div className="space-y-12">
       <header className="space-y-4">
         <Eyebrow>administrator</Eyebrow>
-        <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-3">
             <PageTitle>Kontrollpanel for galleriet</PageTitle>
             <PageDescription>
-              Legg til, oppdater eller fjern modeller og tilhørende bilder. Endringene lagres direkte i Firestore og er
-              tilgjengelige for galleriet.
+              Last opp nye galleri-bilder, oppdater beskrivelser og styr rekkefølgen de vises i. Alt lagres direkte i
+              Firestore og speiles i det offentlige galleriet.
             </PageDescription>
           </div>
-          <div className="flex flex-col items-end gap-2 text-right text-xs uppercase tracking-[0.3em] text-slate-500">
-            <span>{user?.email}</span>
-            <button
-              type="button"
-              onClick={logout}
-              className="rounded-full border border-slate-300 px-4 py-1 text-[0.65rem] font-medium text-slate-600 transition-colors hover:border-slate-400 hover:text-slate-900"
-            >
-              Logg ut
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={logout}
+            className="rounded-full border border-slate-300 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-slate-600 transition-colors hover:border-slate-400 hover:text-slate-900"
+          >
+            Logg ut
+          </button>
         </div>
         {!adminEmailsConfigured ? (
           <Surface variant="subtle" className="border-dashed text-sm text-slate-600">
@@ -171,16 +211,6 @@ const AdminDashboard = () => {
               />
             </label>
             <label className="space-y-2">
-              <span className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Filbane til modell</span>
-              <input
-                required
-                value={formState.modelPath}
-                onChange={(event) => updateField('modelPath', event.target.value)}
-                placeholder="/models/artifact-01.glb"
-                className="w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition-colors focus:border-slate-400 focus:ring-1 focus:ring-slate-300"
-              />
-            </label>
-            <label className="space-y-2">
               <span className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Kategori</span>
               <select
                 value={formState.category}
@@ -194,6 +224,23 @@ const AdminDashboard = () => {
                 ))}
               </select>
             </label>
+            <label className="space-y-2">
+              <span className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
+                Rekkefølge (lavere tall vises først)
+              </span>
+              <input
+                type="number"
+                value={formState.displayOrder ?? ''}
+                onChange={(event) =>
+                  setFormState((prev) => ({
+                    ...prev,
+                    displayOrder: event.target.value === '' ? null : Number(event.target.value),
+                  }))
+                }
+                placeholder="0"
+                className="w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition-colors focus:border-slate-400 focus:ring-1 focus:ring-slate-300"
+              />
+            </label>
           </div>
           <label className="space-y-2">
             <span className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Beskrivelse</span>
@@ -205,15 +252,29 @@ const AdminDashboard = () => {
               className="w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition-colors focus:border-slate-400 focus:ring-1 focus:ring-slate-300"
             />
           </label>
-          <label className="space-y-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Bilde/preview URL (valgfritt)</span>
-            <input
-              value={formState.imageUrl ?? ''}
-              onChange={(event) => updateField('imageUrl', event.target.value)}
-              placeholder="https://..."
-              className="w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition-colors focus:border-slate-400 focus:ring-1 focus:ring-slate-300"
-            />
-          </label>
+          <input type="hidden" value={formState.imageUrl ?? ''} readOnly />
+          <div className="space-y-3">
+            <span className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Forhåndsvisning (last opp)</span>
+            {formState.imageUrl ? (
+              <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white/60 p-3">
+                <img src={formState.imageUrl} alt="Preview" className="h-16 w-16 rounded-xl object-cover" />
+                <button
+                  type="button"
+                  className="rounded-full border border-rose-300 px-3 py-1 text-xs uppercase tracking-[0.3em] text-rose-600 transition hover:bg-rose-50"
+                  onClick={async () => {
+                    await deleteImageAtPath(formState.imageStoragePath);
+                    setFormState((prev) => ({ ...prev, imageUrl: null, imageStoragePath: null }));
+                  }}
+                >
+                  Fjern
+                </button>
+              </div>
+            ) : (
+              <Muted className="text-xs">Ingen preview lastet opp ennå.</Muted>
+            )}
+            <input type="file" accept="image/*" onChange={(event) => setPreviewFile(event.target.files?.[0] ?? null)} />
+            {previewFile ? <Muted className="text-xs">Ny fil: {previewFile.name}</Muted> : null}
+          </div>
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="submit"
@@ -254,34 +315,39 @@ const AdminDashboard = () => {
               Ingen elementer er publisert ennå. Legg til ditt første kunstverk ovenfor.
             </Surface>
           ) : (
-            <ul className="space-y-4">
+            <ul className="grid gap-4 md:grid-cols-2">
               {items.map((item) => (
                 <li
                   key={item.id}
-                  className="flex flex-col gap-4 rounded-[2rem] border border-slate-200 bg-white/80 p-6 shadow-sm md:flex-row md:items-start md:justify-between"
+                  className="rounded-[1.5rem] border border-slate-200 bg-white/80 p-4 shadow-[0_12px_30px_-25px_rgba(15,23,42,0.65)]"
                 >
-                  <div className="space-y-3">
-                    <div className="space-y-1">
-                      <h3 className="text-xl font-semibold text-slate-900">{item.title}</h3>
-                      <p className="text-sm text-slate-600">{item.description}</p>
-                    </div>
-                    <div className="space-y-1 text-xs font-mono uppercase tracking-[0.35em] text-slate-400">
-                      <p>kategori · {galleryCategoryLabels[item.category]}</p>
-                      <p>modell · {item.modelPath}</p>
-                      {item.imageUrl ? <p>bilde · {item.imageUrl}</p> : null}
-                    </div>
+                  <div className="flex items-center gap-4">
                     {item.imageUrl ? (
-                      <div className="overflow-hidden rounded-3xl border border-slate-200">
-                        <img
-                          src={item.imageUrl}
-                          alt={item.title}
-                          className="h-40 w-full object-cover"
-                          loading="lazy"
-                        />
+                      <img
+                        src={item.imageUrl}
+                        alt={item.title}
+                        className="h-20 w-20 flex-shrink-0 rounded-2xl object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-2xl border border-dashed border-slate-200 text-[0.55rem] uppercase tracking-[0.35em] text-slate-400">
+                        Ingen
                       </div>
-                    ) : null}
+                    )}
+                    <div className="space-y-2">
+                      <div className="space-y-0.5">
+                        <p className="text-[0.55rem] uppercase tracking-[0.35em] text-slate-400">
+                          {galleryCategoryLabels[item.category]}
+                        </p>
+                        <h3 className="text-base font-semibold text-slate-900">{item.title}</h3>
+                      </div>
+                      <p className="text-xs text-slate-600 line-clamp-2">{item.description}</p>
+                      <div className="text-[0.55rem] font-mono uppercase tracking-[0.3em] text-slate-400">
+                        <span>rekkefølge · {item.displayOrder ?? '∞'}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex gap-2 self-start">
+                  <div className="mt-4 flex gap-2">
                     <button
                       type="button"
                       onClick={() => handleEdit(item)}

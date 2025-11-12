@@ -100,24 +100,28 @@ const GalleryPage = () => {
     setProjectVisible(PROJECT_BATCH);
   }, [activeFilter]);
 
-  const itemsByCategory = useMemo<ItemsByCategory>(
-    () =>
-      galleryCategories.reduce<ItemsByCategory>(
-        (accumulator, category) => {
-          accumulator[category] = items.filter((item) => item.category === category);
-          return accumulator;
-        },
-        { commercial: [], collection: [] },
-      ),
-    [items],
-  );
+  const itemsByCategory = useMemo<ItemsByCategory>(() => {
+    const base: ItemsByCategory = {
+      commercial: [],
+      collection: [],
+      studio: [],
+    };
+
+    galleryCategories.forEach((category) => {
+      base[category] = items.filter((item) => item.category === category);
+    });
+
+    return base;
+  }, [items]);
 
   const commercialPosts = itemsByCategory.commercial;
+  const collectionPosts = itemsByCategory.collection;
+  const studioPosts = itemsByCategory.studio;
 
   useEffect(() => {
-    const prioritized = items.filter((item) => item.category === 'commercial' || item.category === 'collection');
+    const prioritized = items.filter((item) => galleryCategories.includes(item.category));
     const derived = prioritized.flatMap((item, itemIndex) => {
-      const shots = item.galleryShots?.length ? item.galleryShots : [fallbackImage];
+      const shots = item.galleryShots?.length ? item.galleryShots : [item.imageUrl ?? fallbackImage];
       return shots.map((shot, shotIndex) => ({
         id: `${item.id ?? item.title}-${shotIndex}`,
         img: shot,
@@ -151,22 +155,28 @@ const GalleryPage = () => {
     [masonryPreview, masonryVisible],
   );
 
+  const buildCardsFromItems = (source: GalleryItem[]) =>
+    source.map((item) => {
+      const shots = item.galleryShots?.length ? item.galleryShots : [item.imageUrl ?? fallbackImage];
+      return {
+        id: item.id ?? item.title,
+        title: item.title,
+        description: item.description,
+        meta: [formatDisplayDate(item.postedAt) ?? 'Draft', item.tags?.length ? item.tags.join(', ') : null].filter(Boolean) as string[],
+        image: shots[0],
+        images: shots,
+      };
+    });
+
   const filteredCards = useMemo(() => {
     if (activeFilter === 'commercial') {
-      return commercialPosts.map((item) => {
-        const shots = item.galleryShots?.length ? item.galleryShots : [fallbackImage];
-        return {
-          id: item.id ?? item.title,
-          title: item.title,
-          description: item.description,
-          meta: [formatDisplayDate(item.postedAt) ?? 'Draft', item.tags?.length ? item.tags.join(', ') : null].filter(Boolean) as string[],
-          image: shots[0],
-          images: shots,
-        };
-      });
+      return buildCardsFromItems(commercialPosts);
     }
 
     if (activeFilter === 'collection') {
+      if (collectionPosts.length) {
+        return buildCardsFromItems(collectionPosts);
+      }
       return collectionShowcase.map((item) => {
         const shots = item.galleryShots?.length ? item.galleryShots : [fallbackImage];
         return {
@@ -180,18 +190,25 @@ const GalleryPage = () => {
       });
     }
 
-    return studioFeedPosts.map((post) => {
-      const shots = post.images.length ? post.images : [fallbackImage];
-      return {
-        id: post.id,
-        title: post.title,
-        description: post.caption,
-        meta: [post.postedAt, post.location ? `Location ${post.location}` : null].filter(Boolean) as string[],
-        image: shots[0],
-        images: shots,
-      };
-    });
-  }, [activeFilter, commercialPosts]);
+    if (activeFilter === 'studio') {
+      if (studioPosts.length) {
+        return buildCardsFromItems(studioPosts);
+      }
+      return studioFeedPosts.map((post) => {
+        const shots = post.images.length ? post.images : [fallbackImage];
+        return {
+          id: post.id,
+          title: post.title,
+          description: post.caption,
+          meta: [post.postedAt, post.location ? `Location ${post.location}` : null].filter(Boolean) as string[],
+          image: shots[0],
+          images: shots,
+        };
+      });
+    }
+
+    return buildCardsFromItems(commercialPosts);
+  }, [activeFilter, commercialPosts, collectionPosts, studioPosts]);
 
   const hasMoreShots = masonryVisible < masonryPreview.length;
   const visibleCards = filteredCards.slice(0, projectVisible);
