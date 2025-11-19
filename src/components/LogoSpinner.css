@@ -1,39 +1,21 @@
 .logo-spinner-frame {
-  width: min(1180px, 92vw);
-  aspect-ratio: 16 / 5;
-  margin: -5rem auto 2rem;
-  min-height: clamp(240px, 40vw, 520px);
+  width: 100%;
+  max-width: 1400px;
+  height: 320px;
+  margin: 0 auto;
+  padding-top: 0rem;
+  position: relative;
 }
 
 @media (max-width: 640px) {
   .logo-spinner-frame {
-    margin-top: -4rem;
-    margin-bottom: 1rem;
-    aspect-ratio: 16 / 6.4;
-    min-height: clamp(200px, 55vw, 420px);
-  }
-}
-
-@media (min-width: 1024px) {
-  .logo-spinner-frame {
-    width: min(1400px, 88vw);
-    margin-top: -6.5rem;
-    margin-bottom: 2.25rem;
-    min-height: clamp(320px, 34vw, 560px);
-  }
-}
-
-@media (min-width: 1440px) {
-  .logo-spinner-frame {
-    width: min(1600px, 80vw);
-    aspect-ratio: 16 / 4.2;
-    margin-top: -5.5rem;
-    margin-bottom: 2.5rem;
-    min-height: 640px;
+    height: 260px;
+    padding-top: 0rem;
   }
 }
 
 .logo-spinner-canvas {
   width: 100% !important;
   height: 100% !important;
+  display: block;
 }
