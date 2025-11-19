@@ -1,0 +1,14 @@
+[Dd]ebug/
+[Rr]elease/
+[Bb]in/
+[Oo]bj/
+.vscode/
+.env
+*.db
+*.sqlite
+wwwroot/images/*
+!wwwroot/images/.gitkeep
+
+# Firebase credentials
+Galleri.Api/Config/firebase-service-account.json
+Galleri.Api/*firebase-adminsdk*.json

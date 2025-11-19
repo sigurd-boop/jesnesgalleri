@@ -1,0 +1,8 @@
+bin/
+obj/
+*.user
+*.db
+*.sqlite
+appsettings.Production.json
+wwwroot/images/*
+!wwwroot/images/.gitkeep
