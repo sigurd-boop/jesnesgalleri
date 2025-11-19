@@ -1,15 +1,106 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ButtonLink, Eyebrow, Muted, PageDescription, PageTitle, Surface } from '../components/Bits';
+import { useCallback, useEffect, useMemo, useRef, useState, Suspense } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { Html, useGLTF } from '@react-three/drei';
+import {
+  Box3,
+  Color,
+  MeshPhysicalMaterial,
+  Vector3,
+  type Group,
+  type Mesh,
+} from 'three';
+
+import { ButtonLink, Eyebrow, Muted, PageDescription, Surface } from '../components/Bits';
 import useBigCartelProducts, { type BigCartelProduct } from '../hooks/useBigCartelProducts';
 import { cn } from '../lib/cn';
+import { GooeyText } from '../components/ui/gooey-text-morphing';
+import ShopProductCard from '../components/ShopProductCard';
+
+import paintDudeModelUrl from '/models/paintdude.glb?url';
 
 const fallbackImage = 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80';
 const NOK_FORMATTER = new Intl.NumberFormat('nb-NO', { style: 'currency', currency: 'NOK' });
 
+const PaintDudeModel = ({ spinSpeed = 0.55 }: { spinSpeed?: number }) => {
+  const group = useRef<Group>(null);
+  const { scene } = useGLTF(paintDudeModelUrl);
+  const clone = useMemo(() => scene.clone(true), [scene]);
+
+  const createChromeMaterial = useCallback(() => {
+    const material = new MeshPhysicalMaterial({
+      color: new Color('#050505').convertSRGBToLinear(),
+      metalness: 1,
+      roughness: 0.12,
+      reflectivity: 1,
+      clearcoat: 1,
+      clearcoatRoughness: 0.06,
+      envMapIntensity: 1.6,
+    });
+    material.emissive = new Color('#000000');
+    material.emissiveIntensity = 0.02;
+    return material;
+  }, []);
+
+  useEffect(() => {
+    const materials: MeshPhysicalMaterial[] = [];
+
+    clone.traverse((child) => {
+      if ((child as Mesh).isMesh) {
+        const mesh = child as Mesh;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        const material = createChromeMaterial();
+        material.needsUpdate = true;
+        mesh.material = material;
+        materials.push(material);
+      }
+    });
+
+    const box = new Box3().setFromObject(clone);
+    const center = box.getCenter(new Vector3());
+    const size = box.getSize(new Vector3());
+    const maxDimension = Math.max(size.x, size.y, size.z) || 1;
+    clone.position.sub(center);
+    clone.scale.setScalar(2.2 / maxDimension);
+
+    return () => {
+      materials.forEach((material) => material.dispose());
+    };
+  }, [clone, createChromeMaterial]);
+
+  useFrame((_, delta) => {
+    if (!group.current) return;
+    group.current.rotation.y += delta * spinSpeed;
+    group.current.rotation.x = Math.sin(Date.now() / 2200) * 0.25;
+  });
+
+  return (
+    <group ref={group} position={[0, -0.1, 0]}>
+      <primitive object={clone} dispose={null} />
+    </group>
+  );
+};
+
+const PaintDudeSpinner = () => (
+  <div className="mx-auto h-64 w-full max-w-3xl">
+    <Canvas camera={{ position: [0, 0.6, 4], fov: 35 }} shadows dpr={[1, 2]} gl={{ alpha: true }}>
+      <Suspense
+        fallback={
+          <Html center>
+            <div className="rounded-full border border-slate-200/60 bg-white/80 px-4 py-2 text-xs uppercase tracking-[0.3em] text-slate-500">
+              Loading sculpt …
+            </div>
+          </Html>
+        }
+      >
+        <PaintDudeModel />
+      </Suspense>
+    </Canvas>
+  </div>
+);
+
 const parsePriceValue = (value?: string | number | null) => {
-  if (typeof value === 'number') {
-    return Number.isFinite(value) ? value : null;
-  }
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
   if (typeof value === 'string') {
     const normalized = Number(value.replace(',', '.'));
     return Number.isFinite(normalized) ? normalized : null;
@@ -29,27 +120,31 @@ const formatProductPrice = (product: BigCartelProduct) => {
 };
 
 const isProductSoldOut = (product: BigCartelProduct) => {
-  if (typeof product.sold_out === 'boolean') {
-    return product.sold_out;
-  }
-  if (product.status && product.status.toLowerCase().includes('sold')) {
-    return true;
-  }
+  if (typeof product.sold_out === 'boolean') return product.sold_out;
+  if (product.status?.toLowerCase().includes('sold')) return true;
   if (product.options?.length) {
     return product.options.every((option) => option.sold_out ?? option.quantity === 0);
   }
   return false;
 };
 
+const sanitizeDescription = (value?: string) => {
+  if (!value) return [];
+  const plain = value.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ');
+  return plain
+    .split(/\n{2,}|\r\n\r\n/)
+    .map((paragraph) => paragraph.replace(/\s+/g, ' ').trim())
+    .filter(Boolean);
+};
+
 const ShopPage = () => {
   const { products, loading, error } = useBigCartelProducts();
   const [activeProduct, setActiveProduct] = useState<BigCartelProduct | null>(null);
+  const [gridActivated, setGridActivated] = useState(false);
+  const gridRef = useRef<HTMLDivElement | null>(null);
 
   const items = useMemo(() => {
-    if (products.length) {
-      return products;
-    }
-
+    if (products.length) return products;
     return Array.from({ length: 4 }, (_, index) => ({
       id: index,
       name: 'Jesné placeholder',
@@ -57,8 +152,10 @@ const ShopPage = () => {
       url: '#',
       description: 'Products from BigCartel will appear here once the API responds.',
       images: [{ secure_url: fallbackImage }],
-    }));
+    })) as BigCartelProduct[];
   }, [products]);
+
+  const heroTexts = ['Aztro collection', 'Available soon'];
 
   const handlePreview = useCallback((product: BigCartelProduct) => {
     setActiveProduct(product);
@@ -68,72 +165,74 @@ const ShopPage = () => {
     setActiveProduct(null);
   }, []);
 
+  useEffect(() => {
+    const node = gridRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(
+      (entries, obs) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setGridActivated(true);
+            obs.disconnect();
+          }
+        });
+      },
+      { threshold: 0.2, rootMargin: '0px 0px -10% 0px' },
+    );
+    observer.observe(node);
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
   return (
     <div className="mx-auto max-w-6xl space-y-12 px-4 py-12">
-      <header className="space-y-4 text-center animate-fade-in-up">
-        <Eyebrow>shop</Eyebrow>
-        <PageTitle>Pieces from the Jesné store</PageTitle>
-        <PageDescription>
-          Items are pulled directly from BigCartel. Tap a card to finish the purchase on jesne.bigcartel.com.
+      <section className="space-y-6 text-center animate-fade-in-up">
+        <Eyebrow>shop collection</Eyebrow>
+        <div className="mx-auto h-[200px] w-full max-w-4xl">
+          <GooeyText
+            texts={heroTexts}
+            scrollControlled
+            scrollStep={420}
+            className="h-full"
+            textClassName="font-semibold text-slate-900 leading-[1.05] tracking-[0.04em] text-[20vw] sm:leading-[0.9] sm:text-[12vw] md:text-[9rem]"
+          />
+        </div>
+        <div className="flex justify-center">
+          <PaintDudeSpinner />
+        </div>
+        <PageDescription className="sr-only">
+          Scroll to reveal the current Jesné drop pulled live from BigCartel. Tap a card to finish the purchase on jesne.bigcartel.com.
         </PageDescription>
-      </header>
+        <p className="text-xs uppercase tracking-[0.4em] text-slate-500">Scroll to reveal ↓</p>
+      </section>
 
-      {error ? (
+      {error && (
         <Surface variant="subtle" className="text-sm text-rose-600">
           {error}
         </Surface>
-      ) : null}
+      )}
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {items.map((product, index) => {
-          const image = product.images?.[0]?.secure_url ?? fallbackImage;
+      <div
+        ref={gridRef}
+        className={cn(
+          'grid gap-8 md:grid-cols-2 transition-all duration-700 ease-out',
+          gridActivated ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-5 opacity-0',
+        )}
+      >
+        {items.map((product) => {
           const soldOut = isProductSoldOut(product);
           const priceLabel = loading && !products.length ? 'Syncing…' : formatProductPrice(product);
-          const animationDelay = `${Math.min(index * 0.08, 0.4)}s`;
+          const descriptionParagraphs = sanitizeDescription(product.description);
           return (
-            <Surface
+            <ShopProductCard
               key={product.id}
-              className="flex h-full flex-col gap-4 animate-fade-in-up"
-              style={{ animationDelay }}
-            >
-              <button
-                type="button"
-                onClick={() => handlePreview(product)}
-                className="group overflow-hidden rounded-2xl border border-white/60 bg-white/80"
-              >
-                <img
-                  src={image}
-                  alt={product.name}
-                  className={cn(
-                    'h-64 w-full object-cover transition duration-500 group-hover:scale-105',
-                    loading ? 'opacity-60 blur-sm' : '',
-                  )}
-                  loading="lazy"
-                />
-              </button>
-              <div className="space-y-1">
-                <p className="text-xs uppercase tracking-[0.35em] text-slate-400">{priceLabel}</p>
-                <div className="flex items-center justify-between gap-3">
-                  <h3 className="text-lg font-semibold text-slate-900">{product.name}</h3>
-                  <span
-                    className={cn(
-                      'rounded-full px-3 py-1 text-[0.55rem] font-semibold uppercase tracking-[0.25em]',
-                      soldOut ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600',
-                    )}
-                  >
-                    {soldOut ? 'Sold out' : 'Available'}
-                  </span>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => handlePreview(product)}
-                className="mt-auto inline-flex items-center justify-center rounded-full border border-slate-900/20 px-5 py-2 text-xs uppercase tracking-[0.3em] text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-900/40 hover:text-slate-900"
-                disabled={loading && !products.length}
-              >
-                Preview piece
-              </button>
-            </Surface>
+              product={product}
+              priceLabel={priceLabel}
+              soldOut={soldOut}
+              descriptionParagraphs={descriptionParagraphs.length ? descriptionParagraphs : ['No description provided yet.']}
+              onPreview={() => handlePreview(product)}
+            />
           );
         })}
       </div>
@@ -141,17 +240,6 @@ const ShopPage = () => {
       <ProductPreviewSection product={activeProduct} onClose={closePreview} />
     </div>
   );
-};
-
-const sanitizeDescription = (value?: string) => {
-  if (!value) {
-    return [];
-  }
-  const plain = value.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ');
-  return plain
-    .split(/\n{2,}|\r\n\r\n/)
-    .map((paragraph) => paragraph.replace(/\s+/g, ' ').trim())
-    .filter(Boolean);
 };
 
 const ProductPreviewSection = ({
@@ -196,7 +284,7 @@ const ProductPreviewSection = ({
             className="max-h-[520px] w-full object-cover"
             loading="lazy"
           />
-          {hasMultiple ? (
+          {hasMultiple && (
             <>
               <div className="absolute inset-0 flex items-center justify-between px-4 text-white">
                 <button
@@ -226,7 +314,7 @@ const ProductPreviewSection = ({
                 ))}
               </div>
             </>
-          ) : null}
+          )}
         </div>
 
         <div className="flex-1 space-y-5">
@@ -261,7 +349,7 @@ const ProductPreviewSection = ({
             >
               Close preview
             </button>
-            {hasStoreUrl ? (
+            {hasStoreUrl && (
               <ButtonLink
                 href={`https://jesne.bigcartel.com${product.url}`}
                 target="_blank"
@@ -270,7 +358,7 @@ const ProductPreviewSection = ({
               >
                 Checkout on BigCartel
               </ButtonLink>
-            ) : null}
+            )}
           </div>
         </div>
       </div>
@@ -279,3 +367,5 @@ const ProductPreviewSection = ({
 };
 
 export default ShopPage;
+
+useGLTF.preload(paintDudeModelUrl);

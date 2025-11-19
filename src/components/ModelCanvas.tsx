@@ -1,5 +1,5 @@
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Environment, useGLTF } from '@react-three/drei';
+import { useGLTF } from '@react-three/drei';
 import { Component, Suspense, createElement, type ReactNode, useEffect, useMemo, useRef } from 'react';
 import type { Group } from 'three';
 import { Box3, Vector3 } from 'three';
@@ -126,7 +126,6 @@ const ModelCanvas = ({ modelPath, animated = true }: ModelCanvasProps) => {
           >
             <RotatingModel modelPath={modelPath} animated={animated} />
           </Suspense>
-          <Environment preset="apartment" />
         </Canvas>
       </Surface>
     </ModelErrorBoundary>

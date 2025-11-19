@@ -1,0 +1,83 @@
+.metallic-tilt-wrap {
+  --gradient-rotation: 0deg;
+  --gradient-position-x: 50%;
+  --gradient-position-y: 50%;
+  --rotate-x: 0deg;
+  --rotate-y: 0deg;
+  --card-width: min(100%, 820px);
+  --border-radius: 24px;
+
+  display: grid;
+  place-items: center;
+  padding: 0;
+  margin: 0;
+}
+
+.metallic-tilt-wrap[data-theme='dark'] {
+  background: #000;
+}
+
+.metallic-tilt-wrap[data-theme='light'] {
+  background: #fff;
+}
+
+.metallic-tilt-card {
+  position: relative;
+  width: var(--card-width);
+  aspect-ratio: 1.586;
+  border-radius: var(--border-radius);
+  transform: rotateX(var(--rotate-x)) rotateY(var(--rotate-y));
+  transform-style: preserve-3d;
+  transition: transform 0.1s ease-out, box-shadow 0.2s ease-out;
+  overflow: hidden;
+  box-shadow:
+    0 10px 50px rgba(0, 0, 0, 0.25),
+    inset -1px -1px 2px rgba(0, 0, 0, 0.3),
+    inset 1px 1px 2px rgba(255, 255, 255, 0.3);
+  background:
+    radial-gradient(
+      ellipse 160% 120% at var(--gradient-position-x) var(--gradient-position-y),
+      transparent 0%,
+      rgba(0, 0, 0, 0.9) 100%
+    ),
+    conic-gradient(
+      from var(--gradient-rotation) at 50% 50%,
+      rgba(0, 0, 0, 0.6) -120deg,
+      rgba(255, 255, 255, 0.4) 9deg,
+      rgba(0, 0, 0, 0.4) 60deg,
+      rgba(0, 0, 0, 0.06) 107deg,
+      rgba(0, 0, 0, 0.3) 131deg,
+      rgba(0, 0, 0, 0) 188deg,
+      rgba(0, 0, 0, 0.6) 240deg,
+      rgba(255, 255, 255, 0.4) 367deg
+    ),
+    var(--bg-card);
+}
+
+.metallic-tilt-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  filter: var(--noise-filter);
+  opacity: 0.25;
+  z-index: 1;
+}
+
+.metallic-tilt-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--bg-card);
+  mix-blend-mode: color;
+  z-index: 2;
+}
+
+.metallic-tilt-card-content {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  z-index: 3;
+}
