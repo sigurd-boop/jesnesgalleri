@@ -1,46 +1,22 @@
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  onSnapshot,
-  serverTimestamp,
-  updateDoc,
-  type DocumentData,
-  type Firestore,
-  type Unsubscribe,
-} from 'firebase/firestore';
-import {
-  getFirebaseInitializationError,
-  getFirestoreInstance,
-} from './firebase';
+import { apiRequest } from './apiClient';
 
-const COLLECTION_NAME = 'galleryItems';
-
-type TimestampLike = {
-  seconds: number;
-  nanoseconds: number;
-};
-
-const toMillis = (value: unknown): number | undefined => {
-  if (
-    typeof value === 'object' &&
-    value !== null &&
-    'seconds' in value &&
-    'nanoseconds' in value
-  ) {
-    const casted = value as TimestampLike;
-    if (typeof casted.seconds === 'number' && typeof casted.nanoseconds === 'number') {
-      return casted.seconds * 1000 + Math.floor(casted.nanoseconds / 1_000_000);
-    }
+const DEFAULT_MODEL_PATH = '/models/textured.glb';
+const toMillis = (value?: string | null): number | undefined => {
+  if (!value) {
+    return undefined;
   }
-
-  return undefined;
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? undefined : parsed;
 };
 
-const sanitizeString = (input: unknown): string => (typeof input === 'string' ? input : '');
-const optionalString = (input: unknown): string | undefined =>
-  typeof input === 'string' && input.trim().length > 0 ? input : undefined;
+const sanitizeString = (input: unknown): string => (typeof input === 'string' ? input.trim() : '');
+const optionalString = (input: unknown): string | undefined => {
+  if (typeof input !== 'string') {
+    return undefined;
+  }
+  const trimmed = input.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+};
 const optionalStringArray = (input: unknown): string[] | undefined => {
   if (!Array.isArray(input)) {
     return undefined;
@@ -97,57 +73,88 @@ export type GalleryItemInput = {
   displayOrder?: number | null;
 };
 
-type GalleryItemDocument = Omit<GalleryItemInput, 'category'> & {
-  category?: string;
-  createdAt?: TimestampLike;
-  updatedAt?: TimestampLike;
+type ArtworkResponseDto = {
+  id: number;
+  title: string;
+  description: string;
+  modelPath?: string | null;
+  category?: string | null;
+  imageUrl?: string | null;
+  imageStoragePath?: string | null;
+  galleryShots?: string[] | null;
+  galleryShotStoragePaths?: string[] | null;
+  postedAt?: string | null;
+  tags?: string[] | null;
+  displayOrder?: number | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 };
 
-const mapDocument = (snapshotId: string, data: DocumentData): GalleryItem => {
-  const candidate = data as GalleryItemDocument;
-  const category = isGalleryCategory(candidate.category) ? candidate.category : 'collection';
+type ArtworkRequestDto = {
+  title: string;
+  description: string;
+  modelPath: string;
+  category: GalleryCategory;
+  imageUrl?: string | null;
+  imageStoragePath?: string | null;
+  galleryShots?: string[] | null;
+  galleryShotStoragePaths?: string[] | null;
+  postedAt?: string | null;
+  tags?: string[] | null;
+  displayOrder?: number | null;
+};
+
+const mapDtoToItem = (dto: ArtworkResponseDto): GalleryItem => {
+  const category = isGalleryCategory(dto.category) ? dto.category : 'collection';
   return {
-    id: snapshotId,
-    title: sanitizeString(candidate.title).trim(),
-    description: sanitizeString(candidate.description).trim(),
-    modelPath: sanitizeString(candidate.modelPath).trim(),
+    id: dto.id?.toString() ?? crypto.randomUUID?.() ?? Math.random().toString(36).slice(2),
+    title: sanitizeString(dto.title),
+    description: sanitizeString(dto.description),
+    modelPath: optionalString(dto.modelPath) ?? DEFAULT_MODEL_PATH,
     category,
-    imageUrl: optionalString(candidate.imageUrl),
-    galleryShots: optionalStringArray(candidate.galleryShots),
-    postedAt: optionalString(candidate.postedAt),
-    tags: optionalStringArray(candidate.tags),
-    imageStoragePath: optionalString(candidate.imageStoragePath),
-    galleryShotStoragePaths: optionalStringArray(candidate.galleryShotStoragePaths),
+    imageUrl: optionalString(dto.imageUrl),
+    imageStoragePath: optionalString(dto.imageStoragePath),
+    galleryShots: optionalStringArray(dto.galleryShots),
+    galleryShotStoragePaths: optionalStringArray(dto.galleryShotStoragePaths),
+    postedAt: optionalString(dto.postedAt),
+    tags: optionalStringArray(dto.tags),
     displayOrder:
-      typeof candidate.displayOrder === 'number' && !Number.isNaN(candidate.displayOrder)
-        ? candidate.displayOrder
+      typeof dto.displayOrder === 'number' && !Number.isNaN(dto.displayOrder)
+        ? dto.displayOrder
         : undefined,
-    createdAt: toMillis(candidate.createdAt),
-    updatedAt: toMillis(candidate.updatedAt),
+    createdAt: toMillis(dto.createdAt),
+    updatedAt: toMillis(dto.updatedAt),
   };
 };
 
-const getCollection = (db: Firestore) => collection(db, COLLECTION_NAME);
+export type Unsubscribe = () => void;
 
 export const subscribeToGalleryItems = (
   onItems: (items: GalleryItem[]) => void,
   onError?: (error: Error) => void,
 ): Unsubscribe => {
-  const db = getFirestoreInstance();
-  const initializationError = getFirebaseInitializationError();
+  let active = true;
+  let controller: AbortController | null = null;
 
-  if (!db) {
-    const error =
-      initializationError ??
-      new Error('Firebase is not configured. Add the environment variables to use the admin dashboard.');
-    onError?.(error);
-    return () => undefined;
-  }
+  const fetchItems = async () => {
+    if (!active) {
+      return;
+    }
 
-  return onSnapshot(
-    getCollection(db),
-    (snapshot) => {
-      const items = snapshot.docs.map((docSnapshot) => mapDocument(docSnapshot.id, docSnapshot.data()));
+    controller?.abort();
+    controller = new AbortController();
+
+    try {
+      const response = await apiRequest<ArtworkResponseDto[]>({
+        path: '/api/artworks',
+        signal: controller.signal,
+      });
+
+      if (!active) {
+        return;
+      }
+
+      const items = response.map(mapDtoToItem);
       items.sort((a, b) => {
         const orderA = typeof a.displayOrder === 'number' ? a.displayOrder : Number.POSITIVE_INFINITY;
         const orderB = typeof b.displayOrder === 'number' ? b.displayOrder : Number.POSITIVE_INFINITY;
@@ -156,65 +163,70 @@ export const subscribeToGalleryItems = (
         }
         return (b.createdAt ?? 0) - (a.createdAt ?? 0);
       });
+
       onItems(items);
-    },
-    (error) => {
-      onError?.(error);
-    },
-  );
+    } catch (error) {
+      if (!active) {
+        return;
+      }
+      onError?.(error as Error);
+    }
+  };
+
+  void fetchItems();
+  const intervalId = window.setInterval(fetchItems, 60_000);
+
+  return () => {
+    active = false;
+    controller?.abort();
+    window.clearInterval(intervalId);
+  };
 };
 
-const normalizeInput = (data: GalleryItemInput): GalleryItemInput => ({
-  title: data.title.trim(),
-  description: data.description.trim(),
-  modelPath: data.modelPath.trim(),
-  category: isGalleryCategory(data.category) ? data.category : 'collection',
-  imageUrl: data.imageUrl ? data.imageUrl.trim() : null,
-  galleryShots: data.galleryShots?.map((entry) => entry.trim()).filter(Boolean) ?? null,
-  postedAt: data.postedAt?.trim() ?? null,
-  tags: data.tags?.map((entry) => entry.trim()).filter(Boolean) ?? null,
-  imageStoragePath: data.imageStoragePath ? data.imageStoragePath.trim() : null,
-  galleryShotStoragePaths: data.galleryShotStoragePaths?.map((entry) => entry.trim()).filter(Boolean) ?? null,
-  displayOrder:
-    typeof data.displayOrder === 'number' && !Number.isNaN(data.displayOrder) ? data.displayOrder : null,
-});
+const normalizeInput = (data: GalleryItemInput): ArtworkRequestDto => {
+  const toArray = (value?: string[] | null) =>
+    value?.map((entry) => entry.trim()).filter((entry) => entry.length > 0) ?? null;
+
+  return {
+    title: data.title.trim(),
+    description: data.description.trim(),
+    modelPath: data.modelPath?.trim() || DEFAULT_MODEL_PATH,
+    category: isGalleryCategory(data.category) ? data.category : 'collection',
+    imageUrl: data.imageUrl?.trim() ?? null,
+    galleryShots: toArray(data.galleryShots),
+    postedAt: data.postedAt?.trim() ?? null,
+    tags: toArray(data.tags),
+    imageStoragePath: data.imageStoragePath?.trim() ?? null,
+    galleryShotStoragePaths: toArray(data.galleryShotStoragePaths),
+    displayOrder:
+      typeof data.displayOrder === 'number' && !Number.isNaN(data.displayOrder) ? data.displayOrder : null,
+  };
+};
 
 export const createGalleryItem = async (data: GalleryItemInput) => {
-  const db = getFirestoreInstance();
-  if (!db) {
-    throw getFirebaseInitializationError() ?? new Error('Firebase is not configured.');
-  }
-
   const payload = normalizeInput(data);
-
-  await addDoc(getCollection(db), {
-    ...payload,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+  await apiRequest({
+    path: '/api/artworks',
+    method: 'POST',
+    body: payload,
+    auth: true,
   });
 };
 
 export const updateGalleryItem = async (id: string, data: GalleryItemInput) => {
-  const db = getFirestoreInstance();
-  if (!db) {
-    throw getFirebaseInitializationError() ?? new Error('Firebase is not configured.');
-  }
-
   const payload = normalizeInput(data);
-  const reference = doc(db, COLLECTION_NAME, id);
-
-  await updateDoc(reference, {
-    ...payload,
-    updatedAt: serverTimestamp(),
+  await apiRequest({
+    path: `/api/artworks/${id}`,
+    method: 'PUT',
+    body: payload,
+    auth: true,
   });
 };
 
 export const deleteGalleryItem = async (id: string) => {
-  const db = getFirestoreInstance();
-  if (!db) {
-    throw getFirebaseInitializationError() ?? new Error('Firebase is not configured.');
-  }
-
-  const reference = doc(db, COLLECTION_NAME, id);
-  await deleteDoc(reference);
+  await apiRequest({
+    path: `/api/artworks/${id}`,
+    method: 'DELETE',
+    auth: true,
+  });
 };

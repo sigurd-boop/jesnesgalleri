@@ -8,7 +8,6 @@ import {
   type GalleryCategory,
   type GalleryItem,
 } from '../lib/galleryRepository';
-import { FirebaseConfigError } from '../lib/firebase';
 import { fallbackGalleryItems } from '../lib/galleryFallback';
 import { collectionShowcase } from '../data/collectionShowcase';
 import { studioFeedPosts } from '../data/studioFeed';
@@ -35,9 +34,9 @@ const fallbackImage =
 const PROJECT_BATCH = 6;
 const MAX_PARALLAX_SHOTS = 7;
 const galleryFilterOptions = [
-  { key: 'commercial', label: 'Commercial work' },
-  { key: 'collection', label: 'Artworks' },
-  { key: 'studio', label: 'Small works' },
+  { key: 'commercial', label: 'Commission queue' },
+  { key: 'collection', label: 'Collection pieces' },
+  { key: 'studio', label: 'Studio experiments' },
 ] as const;
 
 type GalleryFilterKey = (typeof galleryFilterOptions)[number]['key'];
@@ -61,9 +60,7 @@ const GalleryPage = () => {
         }
       },
       (subscribeError) => {
-        if (!(subscribeError instanceof FirebaseConfigError)) {
-          console.error('Unable to fetch gallery items from Firestore', subscribeError);
-        }
+        console.error('Unable to fetch gallery items from backend', subscribeError);
         setItems(fallbackGalleryItems);
       },
     );
@@ -117,14 +114,16 @@ const GalleryPage = () => {
     }));
   }, [items]);
 
-  const buildCardsFromItems = (source: GalleryItem[]) =>
-    source.map((item) => {
+const buildCardsFromItems = (source: GalleryItem[], options?: { includeTags?: boolean }) =>
+  source.map((item) => {
+      const includeTags = options?.includeTags ?? true;
       const shots = item.galleryShots?.length ? item.galleryShots : [item.imageUrl ?? fallbackImage];
+      const tagMeta = includeTags && item.tags?.length ? item.tags.join(', ') : null;
       return {
         id: item.id ?? item.title,
         title: item.title,
         description: item.description,
-        meta: [formatDisplayDate(item.postedAt) ?? 'Draft', item.tags?.length ? item.tags.join(', ') : null].filter(Boolean) as string[],
+        meta: [formatDisplayDate(item.postedAt) ?? 'Draft', tagMeta].filter(Boolean) as string[],
         image: shots[0],
         images: shots,
       };
@@ -132,7 +131,7 @@ const GalleryPage = () => {
 
   const filteredCards = useMemo(() => {
     if (activeFilter === 'commercial') {
-      return buildCardsFromItems(commercialPosts);
+      return buildCardsFromItems(commercialPosts, { includeTags: false });
     }
 
     if (activeFilter === 'collection') {
@@ -196,7 +195,7 @@ const GalleryPage = () => {
         </div>
       </section>
 
-      <section className="space-y-8 pt-6 pb-32 sm:pt-10 lg:pt-14 lg:pb-48">
+      <section className="space-y-8 pt-5 pb-6 sm:pt-8 lg:pt-11 lg:pb-12">
         <div className="hidden sm:block">
           <div className="relative left-1/2 w-screen -translate-x-1/2 transform">
             <ZoomParallax images={parallaxImages} height={160} />
@@ -209,18 +208,19 @@ const GalleryPage = () => {
         </div>
       </section>
 
-      <section id="projects" className="space-y-8 pt-6 animate-fade-in-up">
-        <div className="space-y-4 text-center">
-          <p className="text-xs tracking-[0.35em] uppercase text-slate-700">FLESHBOUND — First Jesné Collection</p>
-          <div className="flex flex-wrap items-center justify-center gap-2">
+      <section id="projects" className="space-y-8 pt-0 animate-fade-in-up">
+        <div className="flex flex-col items-center gap-5 text-center">
+          <div className="flex flex-wrap items-center justify-center gap-3 px-4 sm:gap-4">
             {galleryFilterOptions.map(({ key, label }) => (
               <button
                 key={key}
                 type="button"
                 onClick={() => setActiveFilter(key)}
                 className={cn(
-                  'rounded-full px-4 py-2 text-[0.65rem] uppercase tracking-[0.35em] transition',
-                  activeFilter === key ? 'bg-slate-900 text-white' : 'border border-slate-300 text-slate-500 hover:text-slate-900',
+                  'rounded-full px-6 py-3 text-xs font-semibold uppercase tracking-[0.45em] transition sm:text-sm',
+                  activeFilter === key
+                    ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20'
+                    : 'border border-slate-300 text-slate-600 hover:border-slate-600 hover:text-slate-900',
                 )}
               >
                 {label}
@@ -254,19 +254,15 @@ const GalleryPage = () => {
           </Surface>
         )}
 
-        {filteredCards.length ? (
+        {filteredCards.length > 0 && hasMoreCards ? (
           <div className="flex justify-center">
-            {hasMoreCards ? (
-              <button
-                type="button"
-                onClick={() => setProjectVisible((prev) => Math.min(prev + PROJECT_BATCH, filteredCards.length))}
-                className="rounded-full border border-slate-300 px-6 py-2 text-xs uppercase tracking-[0.35em] text-slate-600 transition hover:border-slate-500 hover:text-slate-900"
-              >
-                Load more projects
-              </button>
-            ) : (
-              <p className="text-xs uppercase tracking-[0.35em] text-slate-400">You reached the end</p>
-            )}
+            <button
+              type="button"
+              onClick={() => setProjectVisible((prev) => Math.min(prev + PROJECT_BATCH, filteredCards.length))}
+              className="rounded-full border border-slate-300 px-8 py-3 text-xs font-semibold uppercase tracking-[0.4em] text-slate-700 transition hover:border-slate-600 hover:text-slate-900"
+            >
+              Feed more specimens
+            </button>
           </div>
         ) : null}
       </section>

@@ -97,7 +97,7 @@ const AdminDashboard = () => {
         console.log('[Admin] Uploading preview file', previewFile.name);
         const uploadedPreview = await uploadImageFile(previewFile, 'gallery/previews');
         nextState.imageUrl = uploadedPreview.url;
-        nextState.imageStoragePath = uploadedPreview.path;
+        nextState.imageStoragePath = uploadedPreview.path ?? null;
         console.log('[Admin] Preview uploaded', uploadedPreview);
       }
 
@@ -108,7 +108,7 @@ const AdminDashboard = () => {
         nextState.galleryShots = [...(nextState.galleryShots ?? []), ...uploads.map((upload) => upload.url)];
         nextState.galleryShotStoragePaths = [
           ...(nextState.galleryShotStoragePaths ?? []),
-          ...uploads.map((upload) => upload.path),
+          ...uploads.map((upload) => upload.path).filter((path): path is string => Boolean(path)),
         ];
       }
 
@@ -198,7 +198,7 @@ const AdminDashboard = () => {
       console.log('[Admin] Deleting item', id);
       const item = items.find((entry) => entry.id === id);
       await deleteGalleryItem(id);
-      console.log('[Admin] Firestore document deleted', id);
+      console.log('[Admin] Artwork removed from backend', id);
       if (item) {
         await deleteImageAtPath(item.imageStoragePath);
         if (item.galleryShotStoragePaths?.length) {
@@ -220,7 +220,7 @@ const AdminDashboard = () => {
             <PageTitle>Kontrollpanel for galleriet</PageTitle>
             <PageDescription>
               Last opp nye galleri-bilder, oppdater beskrivelser og styr rekkefølgen de vises i. Alt lagres direkte i
-              Firestore og speiles i det offentlige galleriet.
+              backend-API-et og speiles i det offentlige galleriet.
             </PageDescription>
           </div>
           <div className="flex flex-col items-end gap-1 text-right text-xs uppercase tracking-[0.3em] text-slate-500">

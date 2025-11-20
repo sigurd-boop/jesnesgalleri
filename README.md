@@ -1,8 +1,8 @@
 # Jesnes Galleri
 
 En sømløs og stilren 3D-opplevelse bygget med React, TypeScript og Tailwind CSS. Prosjektet viser frem GLB-modeller som
-roterer rolig i 360° og leverer en rolig, eksklusiv galleriopplevelse. En innebygget, skjult adminflate med Firebase-tilkobling
-lar deg logge inn, redigere og publisere verk direkte fra nettleseren.
+roterer rolig i 360° og leverer en rolig, eksklusiv galleriopplevelse. En innebygget, skjult adminflate bruker Firebase
+Authentication for pålogging og snakker med et ASP.NET Core-backend-API for persistering i SQLite.
 
 ## Status
 
@@ -21,16 +21,17 @@ npm run dev
 ## Legg inn dine egne GLB-modeller
 
 1. Plasser filene dine i `public/models`.
-2. Oppdater filbanene via admin-panelet (se avsnittet **Skjult admin-tilgang**) eller endre standardlisten i
-   Firestore-kolleksjonen `galleryItems`.
+2. Oppdater filbanene via admin-panelet (se avsnittet **Skjult admin-tilgang**) eller legg dem manuelt inn i databasen
+   via backend-API-et (`/api/artworks`).
 3. Velg kategori (`commercial` for kommersielle jobber eller `collection` for studio-kolleksjonen) slik at innholdet havner
    i riktig fane. Modellen lastes i et WebGL-lerret og roterer automatisk. Hvis du legger til et bilde/preview-URL vises det
    som et komplementært stillbilde i galleriet.
 
-## Firebase-oppsett
+## Miljøvariabler og backend
 
-1. Opprett et Firebase-prosjekt og aktiver **Email/Password** i Authentication.
-2. Opprett en Firestore-database i **Production**-modus (eller test etter behov) og legg til samlingen `galleryItems`.
+1. Opprett et Firebase-prosjekt og aktiver **Email/Password** i Authentication (kun Auth beholdes).
+2. Kjør backend-API-et fra `backend/Galleri.Api` (se backend-README for `dotnet run`, migreringer osv.). Standard URL er
+   `http://localhost:5258`.
 3. Lag en `.env.local` med følgende nøkler (verdier finner du i Firebase-konsollen):
 
    ```bash
@@ -40,21 +41,16 @@ npm run dev
    VITE_FIREBASE_STORAGE_BUCKET="..."
    VITE_FIREBASE_MESSAGING_SENDER_ID="..."
    VITE_FIREBASE_APP_ID="..."
+   VITE_API_BASE_URL="http://localhost:5258"
    # Komma-separerte admin-adresser som skal ha full tilgang til admin-panelet
    VITE_FIREBASE_ADMIN_EMAILS="admin@example.com"
    # Sett en hemmelig slug for admin-routing. Standard er `_atelier-admin` hvis feltet utelates.
    VITE_ADMIN_ROUTE="min-skjulte-rute"
    ```
 
-4. Installer Firebase-avhengigheten og bygg prosjektet:
-
-   ```bash
-   npm install firebase
-   npm run build
-   ```
-
-5. Etter innlogging kan du legge til, oppdatere og slette gallerielementer (tittel, beskrivelse, kategori, GLB-filbane,
-   valgfritt bilde) direkte fra admin-siden.
+4. Etter innlogging kan du legge til, oppdatere og slette gallerielementer (tittel, beskrivelse, kategori, GLB-filbane,
+   valgfritt bilde) direkte fra admin-siden. Alle CRUD-kall sendes til backend-API-et, og bildene lastes opp via
+   `/api/upload-image`.
 
 ## Skjult admin-tilgang
 
@@ -66,14 +62,14 @@ npm run dev
 
 ## Struktur
 
-- `src/pages/Gallery.tsx` – hovedgalleri med 3D-visning, kategorifaner og Firestore-strøm.
+- `src/pages/Gallery.tsx` – hovedgalleri med 3D-visning, kategorifaner og strøm fra backend-API-et.
 - `src/pages/Contact.tsx` – kontaktinformasjon og CTA.
 - `src/pages/Github.tsx` – lenke til repository og forslag til videre arbeid.
 - `src/pages/AdminDashboard.tsx` – skjult adminflate for CRUD på galleriet, inkludert kategorifelt.
 - `src/pages/Login.tsx` – sikker innlogging for administratorer.
 - `src/components/ModelCanvas.tsx` – kapsler inn `<Canvas>` fra `@react-three/fiber` og håndterer lastelogikk.
 - `src/context/AuthContext.tsx` – enkel wrapper rundt Firebase Authentication.
-- `src/lib/galleryRepository.ts` – Firestore-abstraksjon for CRUD.
+- `src/lib/galleryRepository.ts` – wrapper rundt backend-API-et for CRUD på galleriet.
 
 ## Teknologi
 
