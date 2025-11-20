@@ -1,7 +1,5 @@
 import { initializeApp, type FirebaseApp, type FirebaseOptions } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
-import { getFirestore, type Firestore } from 'firebase/firestore';
-import { getStorage, type FirebaseStorage } from 'firebase/storage';
 
 const FALLBACK_CONFIG: FirebaseOptions = {
   apiKey: 'REDACTED_FIREBASE_API_KEY',
@@ -22,7 +20,6 @@ export class FirebaseConfigError extends Error {
 let appInstance: FirebaseApp | null = null;
 let initializationAttempted = false;
 let initializationError: Error | null = null;
-let storageInstance: FirebaseStorage | null = null;
 
 const firebaseOptionFromEnv = (): FirebaseOptions | null => {
   const config = {
@@ -80,25 +77,6 @@ export const getFirebaseAuth = (): Auth | null => {
     return null;
   }
   return getAuth(app);
-};
-
-export const getFirestoreInstance = (): Firestore | null => {
-  const app = ensureApp();
-  if (!app) {
-    return null;
-  }
-  return getFirestore(app);
-};
-
-export const getFirebaseStorage = (): FirebaseStorage | null => {
-  const app = ensureApp();
-  if (!app) {
-    return null;
-  }
-  if (!storageInstance) {
-    storageInstance = getStorage(app);
-  }
-  return storageInstance;
 };
 
 export const getFirebaseInitializationError = () => initializationError;
