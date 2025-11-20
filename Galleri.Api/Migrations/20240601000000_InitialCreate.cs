@@ -18,9 +18,18 @@ namespace Galleri.Api.Migrations
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     Title = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
-                    Description = table.Column<string>(type: "TEXT", maxLength: 2000, nullable: true),
+                    Description = table.Column<string>(type: "TEXT", maxLength: 4000, nullable: false),
+                    ModelPath = table.Column<string>(type: "TEXT", maxLength: 512, nullable: true, defaultValue: "/models/textured.glb"),
+                    Category = table.Column<string>(type: "TEXT", maxLength: 64, nullable: true, defaultValue: "collection"),
                     ImageUrl = table.Column<string>(type: "TEXT", maxLength: 2048, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
+                    ImageStoragePath = table.Column<string>(type: "TEXT", maxLength: 512, nullable: true),
+                    GalleryShots = table.Column<string>(type: "TEXT", nullable: true),
+                    GalleryShotStoragePaths = table.Column<string>(type: "TEXT", nullable: true),
+                    PostedAt = table.Column<string>(type: "TEXT", maxLength: 64, nullable: true),
+                    Tags = table.Column<string>(type: "TEXT", nullable: true),
+                    DisplayOrder = table.Column<int>(type: "INTEGER", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
+                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: true, defaultValueSql: "CURRENT_TIMESTAMP")
                 },
                 constraints: table =>
                 {

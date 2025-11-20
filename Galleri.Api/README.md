@@ -44,9 +44,9 @@ Galleri.Api/
 2. **SQLite**
    - Default connection string writes `database.db` inside the project root. Adjust `ConnectionStrings:DefaultConnection` if you prefer another location.
 3. **Image uploads**
-   - Files land in `wwwroot/images`. `Upload:PublicBaseUrl` is used to build absolute URLs in responses (defaults to `http://localhost:5258`).
+   - Files land in `wwwroot/images`. `Upload:PublicBaseUrl` is used to build absolute URLs in responses (defaults to `http://localhost:5258`). Each upload response returns both an `imageUrl` and a `storagePath` (relative path) that can be stored for later cleanup.
 4. **CORS**
-   - The policy currently allows `http://localhost:3000`. Add other origins via `Program.cs` / appsettings if needed.
+   - The policy currently allows `http://localhost:3000`, `http://localhost:5173`, `https://localhost:5173`, and `http://127.0.0.1:5173`. Adjust `Program.cs` if you need other origins.
 
 ## Running the API locally
 
@@ -71,13 +71,15 @@ dotnet ef database update
 
 ## API overview
 
-| Method | Route                  | Auth?     | Description                      |
-|--------|-----------------------|-----------|----------------------------------|
-| POST   | `/api/artworks`       | Firebase  | Create a new artwork row         |
-| GET    | `/api/artworks`       | Optional  | List artworks (newest first)     |
-| GET    | `/api/artworks/{id}`  | Optional  | Fetch single artwork             |
-| DELETE | `/api/artworks/{id}`  | Firebase  | Remove an artwork                |
-| POST   | `/api/upload-image`   | Firebase  | Uploads an image → returns URL   |
+| Method | Route                      | Auth?     | Description                              |
+|--------|---------------------------|-----------|------------------------------------------|
+| POST   | `/api/artworks`           | Firebase  | Create a new artwork row                 |
+| GET    | `/api/artworks`           | Optional  | List artworks (order by display/created) |
+| GET    | `/api/artworks/{id}`      | Optional  | Fetch single artwork                     |
+| PUT    | `/api/artworks/{id}`      | Firebase  | Update an artwork                        |
+| DELETE | `/api/artworks/{id}`      | Firebase  | Remove an artwork                        |
+| POST   | `/api/upload-image`       | Firebase  | Upload an image → returns url + path     |
+| DELETE | `/api/upload-image?path=` | Firebase  | Remove a previously stored image         |
 
 Send the Firebase ID token from the React app via `Authorization: Bearer <idToken>` header. The middleware validates it via `FirebaseAdmin` before your controller code runs.
 

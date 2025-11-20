@@ -1,3 +1,4 @@
+using System.Reflection;
 using Galleri.Api.Data;
 using Galleri.Api.Services;
 using Galleri.Api.Services.Authentication;
@@ -28,7 +29,11 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendPolicy", policy =>
     {
-        policy.WithOrigins("http://localhost:3000")
+        policy.WithOrigins(
+                  "http://localhost:3000",
+                  "http://localhost:5173",
+                  "https://localhost:5173",
+                  "http://127.0.0.1:5173")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -59,4 +64,16 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+if (IsRunningEntityFrameworkCommands())
+{
+    return;
+}
+
 app.Run();
+
+static bool IsRunningEntityFrameworkCommands()
+{
+    return AppDomain.CurrentDomain
+        .GetAssemblies()
+        .Any(assembly => assembly.FullName?.StartsWith("Microsoft.EntityFrameworkCore.Design", StringComparison.Ordinal) == true);
+}

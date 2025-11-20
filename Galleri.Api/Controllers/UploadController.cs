@@ -22,7 +22,10 @@ public class UploadController : ControllerBase
     [Authorize]
     [HttpPost]
     [RequestSizeLimit(10 * 1024 * 1024)]
-    public async Task<IActionResult> UploadAsync([FromForm] IFormFile file, CancellationToken cancellationToken)
+    public async Task<IActionResult> UploadAsync(
+        [FromForm] IFormFile file,
+        [FromForm] string? folder,
+        CancellationToken cancellationToken)
     {
         if (file == null || file.Length == 0)
         {
@@ -35,7 +38,20 @@ public class UploadController : ControllerBase
             return BadRequest("Unsupported image format.");
         }
 
-        var imageUrl = await _imageStorageService.SaveImageAsync(file, cancellationToken);
-        return Ok(new { imageUrl });
+        var storedImage = await _imageStorageService.SaveImageAsync(file, folder, cancellationToken);
+        return Ok(new { imageUrl = storedImage.ImageUrl, storagePath = storedImage.StoragePath });
+    }
+
+    [Authorize]
+    [HttpDelete]
+    public async Task<IActionResult> DeleteAsync([FromQuery] string path, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return BadRequest("Path is required.");
+        }
+
+        await _imageStorageService.DeleteImageAsync(path, cancellationToken);
+        return NoContent();
     }
 }

@@ -29,27 +29,79 @@ public class LocalImageStorageService : IImageStorageService
         Directory.CreateDirectory(_imagesRoot);
     }
 
-    public async Task<string> SaveImageAsync(IFormFile file, CancellationToken cancellationToken = default)
+    public async Task<ImageStorageResult> SaveImageAsync(
+        IFormFile file,
+        string? folder = null,
+        CancellationToken cancellationToken = default)
     {
         if (file == null || file.Length == 0)
         {
             throw new ArgumentException("File cannot be empty.", nameof(file));
         }
 
+        var sanitizedFolder = NormalizeFolder(folder);
+        var targetDirectory = string.IsNullOrWhiteSpace(sanitizedFolder)
+            ? _imagesRoot
+            : Path.Combine(_imagesRoot, sanitizedFolder);
+
+        Directory.CreateDirectory(targetDirectory);
+
         var extension = Path.GetExtension(file.FileName);
         var fileName = $"{Guid.NewGuid():N}{extension}";
-        var destinationPath = Path.Combine(_imagesRoot, fileName);
+        var destinationPath = Path.Combine(targetDirectory, fileName);
 
         await using var stream = new FileStream(destinationPath, FileMode.Create);
         await file.CopyToAsync(stream, cancellationToken);
 
-        var relativePath = Path.Combine("images", fileName).Replace("\\", "/");
+        var relativePath = string.IsNullOrWhiteSpace(sanitizedFolder)
+            ? Path.Combine("images", fileName)
+            : Path.Combine("images", sanitizedFolder, fileName);
 
-        if (!string.IsNullOrWhiteSpace(_settings.PublicBaseUrl))
+        relativePath = relativePath.Replace("\\", "/");
+
+        var publicUrl = string.IsNullOrWhiteSpace(_settings.PublicBaseUrl)
+            ? $"/{relativePath}"
+            : $"{_settings.PublicBaseUrl!.TrimEnd('/')}/{relativePath}";
+
+        return new ImageStorageResult(publicUrl, relativePath);
+    }
+
+    public Task DeleteImageAsync(string storagePath, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(storagePath))
         {
-            return $"{_settings.PublicBaseUrl!.TrimEnd('/')}/{relativePath}";
+            return Task.CompletedTask;
         }
 
-        return $"/{relativePath}";
+        var sanitized = storagePath.Replace("\\", "/").Trim().TrimStart('/');
+        if (sanitized.Length == 0 || sanitized.Contains("..", StringComparison.Ordinal))
+        {
+            return Task.CompletedTask;
+        }
+
+        var absolutePath = Path.Combine(_environment.WebRootPath ?? Path.Combine(AppContext.BaseDirectory, "wwwroot"), sanitized);
+
+        if (File.Exists(absolutePath))
+        {
+            File.Delete(absolutePath);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private static string? NormalizeFolder(string? folder)
+    {
+        if (string.IsNullOrWhiteSpace(folder))
+        {
+            return null;
+        }
+
+        var sanitized = folder.Replace("\\", "/").Trim().Trim('/');
+        if (sanitized.Length == 0 || sanitized.Contains("..", StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        return sanitized;
     }
 }
