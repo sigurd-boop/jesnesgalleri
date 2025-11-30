@@ -28,11 +28,27 @@ import { useLoadingManagerState } from '../lib/loadingManager';
 const LOGO_MODEL_PATH = logoModelUrl;
 const SPIN_SPEED = 0.32;
 
-const JesneLogo = ({ onReady, isMobile }: { onReady?: () => void; isMobile: boolean }) => {
+const getScaleFactor = (isMobile: boolean, maxDimension: number) => {
+  const scale = isMobile ? 3.4 : 3.0;
+  return scale / maxDimension;
+};
+
+const JesneLogo = ({ onReady }: { onReady?: () => void }) => {
   const group = useRef<Group>(null);
   const hasNotified = useRef(false);
   const { scene } = useGLTF(LOGO_MODEL_PATH);
   const logo = useMemo(() => scene.clone(true), [scene]);
+
+  // State to hold the current scale factor
+  const [scale, setScale] = useState(1);
+
+  // Memoize bounding box calculations to prevent re-running on every render
+  const { center, maxDimension } = useMemo(() => {
+    const box = new Box3().setFromObject(logo);
+    const center = box.getCenter(new Vector3());
+    const size = box.getSize(new Vector3());
+    return { center, maxDimension: Math.max(size.x, size.y, size.z) || 1 };
+  }, [logo]);
 
   const createChromeMaterial = useCallback(
     () =>
@@ -63,25 +79,38 @@ const JesneLogo = ({ onReady, isMobile }: { onReady?: () => void; isMobile: bool
       }
     });
 
-    const boundingBox = new Box3().setFromObject(logo);
-    const center = boundingBox.getCenter(new Vector3());
-    const size = boundingBox.getSize(new Vector3());
-    const maxDimension = Math.max(size.x, size.y, size.z) || 1;
-
     logo.position.sub(center);
 
-    const scaleFactor = (isMobile ? 3.2 : 4.2) / maxDimension;
-    logo.scale.setScalar(scaleFactor);
+    // Set initial scale based on window size
+    const initialIsMobile = typeof window !== 'undefined' ? window.innerWidth < 640 : false;
+    const initialScale = getScaleFactor(initialIsMobile, maxDimension);
+    setScale(initialScale);
+    logo.scale.setScalar(initialScale);
 
     if (!hasNotified.current) {
       hasNotified.current = true;
       onReady?.();
     }
 
+    // Use a debounced resize handler for performance
+    let timeoutId: ReturnType<typeof setTimeout>;
+    const handleResize = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        const isMobile = window.innerWidth < 640;
+        const newScale = getScaleFactor(isMobile, maxDimension);
+        setScale(newScale);
+      }, 150); // 150ms delay
+    };
+
+    window.addEventListener('resize', handleResize);
+
     return () => {
       materials.forEach((material) => material.dispose());
+      clearTimeout(timeoutId);
+      window.removeEventListener('resize', handleResize);
     };
-  }, [createChromeMaterial, logo, isMobile, onReady]);
+  }, [createChromeMaterial, logo, onReady, center, maxDimension]);
 
   useFrame((_, delta) => {
     if (!group.current) return;
@@ -89,8 +118,13 @@ const JesneLogo = ({ onReady, isMobile }: { onReady?: () => void; isMobile: bool
     group.current.rotation.x = Math.sin(Date.now() / 3600) * 0.16;
   });
 
+  // Smoothly interpolate to the new scale on resize
+  useFrame(() => {
+    if (logo) logo.scale.lerp(new Vector3(scale, scale, scale), 0.1);
+  });
+
   return (
-    <group ref={group} position={[0, 0.6, 0]}>
+    <group ref={group} position={[0, 0.3, 0]}>
       <primitive object={logo} dispose={null} />
     </group>
   );
@@ -106,7 +140,7 @@ const FallbackIcosahedron = () => {
   });
 
   return (
-    <group ref={meshRef} scale={2.8}>
+    <group ref={meshRef} scale={2.8} position={[0, 0.3, 0]}>
       <mesh castShadow>
         <icosahedronGeometry args={[1.4, 2]} />
         <meshStandardMaterial
@@ -135,13 +169,10 @@ const LogoSpinner = ({ className }: { className?: string }) => {
     }
   }, [shouldUseFallback]);
 
-  // Detect device width once on mount
-  const isMobile = typeof window !== 'undefined' ? window.innerWidth < 640 : false;
-
   return (
     <div className={cn('logo-spinner-frame relative', className)}>
       <Canvas
-        camera={{ position: [0, 1.6, 6.2], fov: 30 }}
+        camera={{ position: [0, 0, 6.6], fov: 30 }}
         dpr={[1, 2]}
         shadows
         className="logo-spinner-canvas"
@@ -166,7 +197,7 @@ const LogoSpinner = ({ className }: { className?: string }) => {
           {shouldUseFallback ? (
             <FallbackIcosahedron />
           ) : (
-            <JesneLogo onReady={() => setLogoReady(true)} isMobile={isMobile} />
+            <JesneLogo onReady={() => setLogoReady(true)} />
           )}
         </Suspense>
       </Canvas>

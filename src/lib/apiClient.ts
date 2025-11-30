@@ -1,13 +1,13 @@
 import { getFirebaseAuth } from './firebase';
 
-const DEFAULT_API_BASE_URL = 'http://localhost:5258';
+const DEFAULT_API_BASE_URL = '';
 
 const buildBaseUrl = () => {
   const configured = (import.meta.env.VITE_API_BASE_URL ?? '').trim();
-  if (!configured) {
-    return DEFAULT_API_BASE_URL;
+  if (configured) {
+    return configured.replace(/\/+$/, '');
   }
-  return configured.replace(/\/+$/, '');
+  return DEFAULT_API_BASE_URL;
 };
 
 const API_BASE_URL = buildBaseUrl();
@@ -136,8 +136,13 @@ const requireAuthToken = async () => {
 };
 
 const extractErrorMessage = async (response: Response) => {
+  const payload = await response.text().catch(() => '');
+  if (!payload) {
+    return response.statusText;
+  }
+
   try {
-    const body = await response.json();
+    const body = JSON.parse(payload);
     if (typeof body === 'string') {
       return body;
     }
@@ -149,8 +154,7 @@ const extractErrorMessage = async (response: Response) => {
     }
     return JSON.stringify(body);
   } catch {
-    const fallback = await response.text();
-    return fallback || response.statusText;
+    return payload;
   }
 };
 
