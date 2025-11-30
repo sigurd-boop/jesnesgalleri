@@ -1,6 +1,6 @@
 import { apiRequest } from './apiClient';
 
-const DEFAULT_MODEL_PATH = '/models/textured.glb';
+// No default model path stored on the backend
 const toMillis = (value?: string | null): number | undefined => {
   if (!value) {
     return undefined;
@@ -46,11 +46,9 @@ export type GalleryItem = {
   id: string;
   title: string;
   description: string;
-  modelPath: string;
   category: GalleryCategory;
   imageUrl?: string;
   galleryShots?: string[];
-  postedAt?: string;
   tags?: string[];
   imageStoragePath?: string;
   galleryShotStoragePaths?: string[];
@@ -62,11 +60,9 @@ export type GalleryItem = {
 export type GalleryItemInput = {
   title: string;
   description: string;
-  modelPath: string;
   category: GalleryCategory;
   imageUrl?: string | null;
   galleryShots?: string[] | null;
-  postedAt?: string | null;
   tags?: string[] | null;
   imageStoragePath?: string | null;
   galleryShotStoragePaths?: string[] | null;
@@ -77,13 +73,11 @@ type ArtworkResponseDto = {
   id: number;
   title: string;
   description: string;
-  modelPath?: string | null;
   category?: string | null;
   imageUrl?: string | null;
   imageStoragePath?: string | null;
   galleryShots?: string[] | null;
   galleryShotStoragePaths?: string[] | null;
-  postedAt?: string | null;
   tags?: string[] | null;
   displayOrder?: number | null;
   createdAt?: string | null;
@@ -93,13 +87,11 @@ type ArtworkResponseDto = {
 type ArtworkRequestDto = {
   title: string;
   description: string;
-  modelPath: string;
   category: GalleryCategory;
   imageUrl?: string | null;
   imageStoragePath?: string | null;
   galleryShots?: string[] | null;
   galleryShotStoragePaths?: string[] | null;
-  postedAt?: string | null;
   tags?: string[] | null;
   displayOrder?: number | null;
 };
@@ -110,13 +102,11 @@ const mapDtoToItem = (dto: ArtworkResponseDto): GalleryItem => {
     id: dto.id?.toString() ?? crypto.randomUUID?.() ?? Math.random().toString(36).slice(2),
     title: sanitizeString(dto.title),
     description: sanitizeString(dto.description),
-    modelPath: optionalString(dto.modelPath) ?? DEFAULT_MODEL_PATH,
     category,
     imageUrl: optionalString(dto.imageUrl),
     imageStoragePath: optionalString(dto.imageStoragePath),
     galleryShots: optionalStringArray(dto.galleryShots),
     galleryShotStoragePaths: optionalStringArray(dto.galleryShotStoragePaths),
-    postedAt: optionalString(dto.postedAt),
     tags: optionalStringArray(dto.tags),
     displayOrder:
       typeof dto.displayOrder === 'number' && !Number.isNaN(dto.displayOrder)
@@ -190,11 +180,9 @@ const normalizeInput = (data: GalleryItemInput): ArtworkRequestDto => {
   return {
     title: data.title.trim(),
     description: data.description.trim(),
-    modelPath: data.modelPath?.trim() || DEFAULT_MODEL_PATH,
     category: isGalleryCategory(data.category) ? data.category : 'collection',
     imageUrl: data.imageUrl?.trim() ?? null,
     galleryShots: toArray(data.galleryShots),
-    postedAt: data.postedAt?.trim() ?? null,
     tags: toArray(data.tags),
     imageStoragePath: data.imageStoragePath?.trim() ?? null,
     galleryShotStoragePaths: toArray(data.galleryShotStoragePaths),

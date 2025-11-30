@@ -15,17 +15,6 @@ import { GooeyText } from '../components/ui/gooey-text-morphing';
 import TypingAnimation from '../components/ui/typing-animation';
 import ZoomParallax, { type ZoomParallaxImage } from '../components/ui/ZoomParallax';
 
-const formatDisplayDate = (value?: string | null) => {
-  if (!value) {
-    return null;
-  }
-  try {
-    return new Intl.DateTimeFormat('en-GB', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value));
-  } catch {
-    return value;
-  }
-};
-
 type ItemsByCategory = Record<GalleryCategory, GalleryItem[]>;
 
 const fallbackImage =
@@ -123,7 +112,7 @@ const buildCardsFromItems = (source: GalleryItem[], options?: { includeTags?: bo
         id: item.id ?? item.title,
         title: item.title,
         description: item.description,
-        meta: [formatDisplayDate(item.postedAt) ?? 'Draft', tagMeta].filter(Boolean) as string[],
+        meta: [tagMeta].filter(Boolean) as string[],
         image: shots[0],
         images: shots,
       };
