@@ -96,10 +96,21 @@ const Masonry = ({
     }
     const heights = Array.from({ length: columns }, () => 0);
     const columnWidth = width / columns;
-    return items.map((item) => {
+    
+    const isMobile = columns <= 2;
+    
+    return items.map((item, index) => {
       const column = heights.indexOf(Math.min(...heights));
       const x = columnWidth * column;
-      const height = (item.height ?? 400) / 2;
+      
+      // Adjust height based on screen size
+      let height = isMobile ? (item.height ?? 400) / 1.2 : (item.height ?? 400) / 2;
+      
+      // On mobile: make first item (left column) even thicker
+      if (isMobile && index === 0 && column === 0) {
+        height = (item.height ?? 400) / 0.6; // Much thicker for the door image on mobile
+      }
+      
       const y = heights[column];
       heights[column] += height + 24;
       return { ...item, x, y, w: columnWidth - 12, h: height } satisfies GridItem;

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import type { FormEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -20,12 +20,11 @@ type FormState = GalleryItemInput & {
   id?: string;
 };
 
-const DEFAULT_MODEL_PATH = '/models/textured.glb';
+// no default model path stored on the backend; frontend will provide fallbacks when rendering
 
 const emptyForm: FormState = {
   title: '',
   description: '',
-  modelPath: DEFAULT_MODEL_PATH,
   category: 'collection',
   imageUrl: null,
   imageStoragePath: null,
@@ -44,9 +43,10 @@ const AdminDashboard = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [previewFile, setPreviewFile] = useState<File | null>(null);
   const [galleryShotFiles, setGalleryShotFiles] = useState<File[]>([]);
+  const unsubscribeRef = useRef<(() => void) | null>(null);
 
-  useEffectOnce(() =>
-    subscribeToGalleryItems(
+  useEffectOnce(() => {
+    const unsubscribe = subscribeToGalleryItems(
       (nextItems) => {
         setItems(nextItems);
         setLoading(false);
@@ -59,8 +59,10 @@ const AdminDashboard = () => {
         );
         setLoading(false);
       },
-    ),
-  );
+    );
+    unsubscribeRef.current = unsubscribe;
+    return unsubscribe;
+  });
 
   const isEditing = useMemo(() => Boolean(formState.id), [formState.id]);
 
@@ -76,6 +78,29 @@ const AdminDashboard = () => {
     setSuccessMessage(null);
     setPreviewFile(null);
     setGalleryShotFiles([]);
+  };
+
+  const handleRefresh = () => {
+    setLoading(true);
+    setError(null);
+    // Unsubscribe from the old subscription
+    unsubscribeRef.current?.();
+    // Subscribe again to fetch fresh data
+    const unsubscribe = subscribeToGalleryItems(
+      (nextItems) => {
+        setItems(nextItems);
+        setLoading(false);
+      },
+      (subscribeError) => {
+        console.error('Kunne ikke hente gallerielementer', subscribeError);
+        setError(
+          subscribeError.message ||
+            'Klarte ikke å hente galleriet. Kontroller Firebase-konfigurasjonen.',
+        );
+        setLoading(false);
+      },
+    );
+    unsubscribeRef.current = unsubscribe;
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -112,14 +137,12 @@ const AdminDashboard = () => {
         ];
       }
 
-      const payload: GalleryItemInput = {
+        const payload: GalleryItemInput = {
         title: nextState.title,
         description: nextState.description,
-        modelPath: DEFAULT_MODEL_PATH,
         category: nextState.category,
         imageUrl: nextState.imageUrl ?? null,
         galleryShots: nextState.galleryShots?.length ? nextState.galleryShots : null,
-        postedAt: nextState.postedAt ?? null,
         tags: nextState.tags ?? null,
         imageStoragePath: nextState.imageStoragePath ?? null,
         galleryShotStoragePaths: nextState.galleryShotStoragePaths?.length
@@ -157,7 +180,6 @@ const AdminDashboard = () => {
       id: item.id,
       title: item.title,
       description: item.description,
-      modelPath: item.modelPath,
       category: item.category,
       imageUrl: item.imageUrl ?? null,
       imageStoragePath: item.imageStoragePath ?? null,
@@ -386,9 +408,20 @@ const AdminDashboard = () => {
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-900">Gallerielementer</h2>
-          <ButtonLink href="#" tone="neutral" className="pointer-events-none opacity-40">
-            {items.length} elementer
-          </ButtonLink>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={loading}
+              className="rounded-full border border-slate-300 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-slate-600 transition-colors hover:border-slate-400 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Refresh the gallery items"
+            >
+              {loading ? 'Laster...' : 'Oppdater'}
+            </button>
+            <ButtonLink href="#" tone="neutral" className="pointer-events-none opacity-40">
+              {items.length} elementer
+            </ButtonLink>
+          </div>
         </div>
         <div className="space-y-4">
           {loading ? (
