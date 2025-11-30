@@ -53,15 +53,6 @@ namespace Galleri.Api.Migrations
                         .HasMaxLength(2048)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("ModelPath")
-                        .HasMaxLength(512)
-                        .HasColumnType("TEXT")
-                        .HasDefaultValue("/models/textured.glb");
-
-                    b.Property<string>("PostedAt")
-                        .HasMaxLength(64)
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Tags")
                         .HasColumnType("TEXT");
 

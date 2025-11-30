@@ -1,10 +1,12 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using Galleri.Api.Data;
 using Galleri.Api.DTOs;
 using Galleri.Api.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace Galleri.Api.Controllers;
@@ -43,9 +45,10 @@ public class ArtworksController : ControllerBase
         return Ok(artwork);
     }
 
-    [Authorize]
+    [Authorize(Policy = "IsAdmin")]
+    [EnableRateLimiting("StrictAdminLimit")]
     [HttpPost]
-    public async Task<ActionResult<Artwork>> CreateAsync([FromBody] CreateArtworkDto dto)
+    public async Task<ActionResult<Artwork>> CreateAsync([FromBody] CreateArtworkDto dto )
     {
         if (!ModelState.IsValid)
         {
@@ -63,10 +66,11 @@ public class ArtworksController : ControllerBase
         _dbContext.Artworks.Add(artwork);
         await _dbContext.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetByIdAsync), new { id = artwork.Id }, artwork);
+        return Ok(artwork);
     }
 
-    [Authorize]
+    [Authorize(Policy = "IsAdmin")]
+    [EnableRateLimiting("StrictAdminLimit")]
     [HttpPut("{id:int}")]
     public async Task<ActionResult<Artwork>> UpdateAsync(int id, [FromBody] CreateArtworkDto dto)
     {
@@ -89,7 +93,8 @@ public class ArtworksController : ControllerBase
         return Ok(artwork);
     }
 
-    [Authorize]
+    [Authorize(Policy = "IsAdmin")]
+    [EnableRateLimiting("StrictAdminLimit")]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> DeleteAsync(int id)
     {
@@ -109,11 +114,9 @@ public class ArtworksController : ControllerBase
     {
         artwork.Title = NormalizeRequired(dto.Title);
         artwork.Description = NormalizeRequired(dto.Description);
-        artwork.ModelPath = NormalizeOptional(dto.ModelPath) ?? artwork.ModelPath;
         artwork.Category = NormalizeOptional(dto.Category) ?? "collection";
         artwork.ImageUrl = NormalizeOptional(dto.ImageUrl);
         artwork.ImageStoragePath = NormalizeOptional(dto.ImageStoragePath);
-        artwork.PostedAt = NormalizeOptional(dto.PostedAt);
         artwork.DisplayOrder = dto.DisplayOrder;
         artwork.GalleryShots = NormalizeList(dto.GalleryShots);
         artwork.GalleryShotStoragePaths = NormalizeList(dto.GalleryShotStoragePaths);

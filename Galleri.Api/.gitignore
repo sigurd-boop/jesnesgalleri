@@ -6,3 +6,12 @@ obj/
 appsettings.Production.json
 wwwroot/images/*
 !wwwroot/images/.gitkeep
+# SECURITY: Never commit Firebase service account or other secrets
+Config/firebase-service-account.json
+Config/*.json
+!Config/.gitkeep
+# Environment and user secrets
+.env
+.env.local
+*.pem
+*.key

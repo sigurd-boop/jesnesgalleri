@@ -44,10 +44,6 @@ public class AppDbContext : DbContext
                 .HasMaxLength(4000)
                 .IsRequired();
 
-            entity.Property(e => e.ModelPath)
-                .HasMaxLength(512)
-                .HasDefaultValue("/models/textured.glb");
-
             entity.Property(e => e.Category)
                 .HasMaxLength(64)
                 .HasDefaultValue("collection");
@@ -57,9 +53,6 @@ public class AppDbContext : DbContext
 
             entity.Property(e => e.ImageStoragePath)
                 .HasMaxLength(512);
-
-            entity.Property(e => e.PostedAt)
-                .HasMaxLength(64);
 
             ConfigureStringList(entity.Property(e => e.GalleryShots));
             ConfigureStringList(entity.Property(e => e.GalleryShotStoragePaths));

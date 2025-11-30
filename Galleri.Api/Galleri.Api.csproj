@@ -22,4 +22,11 @@
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions" Version="8.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
   </ItemGroup>
+  <!-- Exclude unused authentication helper source files (keeps them in repo for reference but out of build) -->
+  <ItemGroup>
+    <Compile Remove="Services/Authentication/FirebaseAuthenticationHandler.cs" />
+    <Compile Remove="Services/Authentication/FirebaseTokenValidator.cs" />
+    <Compile Remove="Services/Authentication/IFirebaseTokenValidator.cs" />
+    <Compile Remove="Services/Authentication/FirebaseAuthenticationDefaults.cs" />
+  </ItemGroup>
 </Project>

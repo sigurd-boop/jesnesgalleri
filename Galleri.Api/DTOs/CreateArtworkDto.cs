@@ -13,9 +13,6 @@ public class CreateArtworkDto
     [MaxLength(4000)]
     public string Description { get; set; } = string.Empty;
 
-    [MaxLength(512)]
-    public string? ModelPath { get; set; }
-
     [MaxLength(64)]
     public string? Category { get; set; }
 
@@ -28,9 +25,6 @@ public class CreateArtworkDto
     public List<string>? GalleryShots { get; set; }
 
     public List<string>? GalleryShotStoragePaths { get; set; }
-
-    [MaxLength(64)]
-    public string? PostedAt { get; set; }
 
     public List<string>? Tags { get; set; }
 

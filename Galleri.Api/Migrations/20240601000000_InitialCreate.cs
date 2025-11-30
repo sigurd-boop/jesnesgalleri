@@ -19,7 +19,7 @@ namespace Galleri.Api.Migrations
                         .Annotation("Sqlite:Autoincrement", true),
                     Title = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
                     Description = table.Column<string>(type: "TEXT", maxLength: 4000, nullable: false),
-                    ModelPath = table.Column<string>(type: "TEXT", maxLength: 512, nullable: true, defaultValue: "/models/textured.glb"),
+                    ModelPath = table.Column<string>(type: "TEXT", maxLength: 512, nullable: true),
                     Category = table.Column<string>(type: "TEXT", maxLength: 64, nullable: true, defaultValue: "collection"),
                     ImageUrl = table.Column<string>(type: "TEXT", maxLength: 2048, nullable: true),
                     ImageStoragePath = table.Column<string>(type: "TEXT", maxLength: 512, nullable: true),
