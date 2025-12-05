@@ -70,9 +70,13 @@ builder.Services.AddCors(options =>
                   "http://localhost:5173",
                   "https://localhost:5173",
                   "http://127.0.0.1:5173",
-                  "http://localhost:5174")
+                  "http://localhost:5174",
+                  "http://72.62.51.200",
+                  "https://jesne.art",
+                  "https://www.jesne.art")
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              .AllowCredentials(); 
     });
 });
 
