@@ -15,6 +15,8 @@ import { GooeyText } from '../components/ui/gooey-text-morphing';
 import TypingAnimation from '../components/ui/typing-animation';
 import ZoomParallax, { type ZoomParallaxImage } from '../components/ui/ZoomParallax';
 
+
+
 type ItemsByCategory = Record<GalleryCategory, GalleryItem[]>;
 
 const fallbackImage =
@@ -103,16 +105,13 @@ const GalleryPage = () => {
     }));
   }, [items]);
 
-const buildCardsFromItems = (source: GalleryItem[], options?: { includeTags?: boolean }) =>
-  source.map((item) => {
-      const includeTags = options?.includeTags ?? true;
+  const buildCardsFromItems = (source: GalleryItem[]) =>
+    source.map((item) => {
       const shots = item.galleryShots?.length ? item.galleryShots : [item.imageUrl ?? fallbackImage];
-      const tagMeta = includeTags && item.tags?.length ? item.tags.join(', ') : null;
       return {
         id: item.id ?? item.title,
         title: item.title,
         description: item.description,
-        meta: [tagMeta].filter(Boolean) as string[],
         image: shots[0],
         images: shots,
       };
@@ -120,7 +119,7 @@ const buildCardsFromItems = (source: GalleryItem[], options?: { includeTags?: bo
 
   const filteredCards = useMemo(() => {
     if (activeFilter === 'commercial') {
-      return buildCardsFromItems(commercialPosts, { includeTags: false });
+      return buildCardsFromItems(commercialPosts);
     }
 
     if (activeFilter === 'collection') {
@@ -133,7 +132,6 @@ const buildCardsFromItems = (source: GalleryItem[], options?: { includeTags?: bo
           id: item.id,
           title: item.title,
           description: item.description,
-          meta: [`Year ${item.year}`, `Mood ${item.mood}`],
           image: shots[0],
           images: shots,
         };
@@ -150,7 +148,6 @@ const buildCardsFromItems = (source: GalleryItem[], options?: { includeTags?: bo
           id: post.id,
           title: post.title,
           description: post.caption,
-          meta: [post.postedAt, post.location ? `Location ${post.location}` : null].filter(Boolean) as string[],
           image: shots[0],
           images: shots,
         };
@@ -226,7 +223,6 @@ const buildCardsFromItems = (source: GalleryItem[], options?: { includeTags?: bo
                 title={card.title}
                 description={card.description}
                 images={card.images}
-                meta={card.meta}
                 actionLabel={
                   activeFilter === 'commercial'
                     ? 'Preview commission'

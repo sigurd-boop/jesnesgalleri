@@ -97,9 +97,10 @@ class ModelErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryStat
 type ModelCanvasProps = {
   modelPath: string;
   animated?: boolean;
+  onHomeClick?: () => void;
 };
 
-const ModelCanvas = ({ modelPath, animated = true }: ModelCanvasProps) => {
+const ModelCanvas = ({ modelPath, animated = true, onHomeClick }: ModelCanvasProps) => {
   return (
     <ModelErrorBoundary
       resetKey={modelPath}
@@ -110,7 +111,17 @@ const ModelCanvas = ({ modelPath, animated = true }: ModelCanvasProps) => {
         </Surface>
       }
     >
-      <Surface className="h-80 w-full overflow-hidden border-slate-200/80 bg-white/80 p-0">
+      <Surface 
+        className="h-80 w-full overflow-hidden border-slate-200/80 bg-white/80 p-0 cursor-pointer transition-opacity hover:opacity-80"
+        onClick={onHomeClick}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            onHomeClick?.();
+          }
+        }}
+      >
         <Canvas camera={{ position: CAMERA_POSITION, fov: CAMERA_FOV }} dpr={[1, 2]}>
           <Color attach="background" args={["#f8fafc"]} />
           <AmbientLight intensity={0.75} />

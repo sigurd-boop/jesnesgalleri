@@ -1,10 +1,11 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
+import ImageGallery from 'react-image-gallery';
+import 'react-image-gallery/styles/css/image-gallery.css';
 
 type Floating3DCardProps = {
   title: string;
   description?: string;
   images: string[];
-  meta?: string[];
   actionLabel?: string;
 };
 
@@ -12,16 +13,37 @@ export const Floating3DCard = ({
   title,
   description,
   images,
-  meta,
   actionLabel = 'View gallery',
 }: Floating3DCardProps) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [index, setIndex] = useState(0);
   const normalizedImages = images.map((image) => image.trim()).filter(Boolean);
   const galleryImages = normalizedImages.length
     ? normalizedImages
     : ['https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1080&q=80'];
+
+  // Transform images for react-image-gallery format
+  const galleryItems = galleryImages.map((image) => ({
+    original: image,
+    thumbnail: image,
+  }));
+
+  // Handle escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && previewOpen) {
+        setPreviewOpen(false);
+      }
+    };
+
+    if (previewOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [previewOpen]);
 
   const handleMouseMove = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
     const card = cardRef.current;
@@ -48,12 +70,14 @@ export const Floating3DCard = ({
   };
 
   const showPreview = () => {
-    setIndex(0);
     setPreviewOpen(true);
   };
 
-  const navigateImage = (direction: 1 | -1) => {
-    setIndex((previous) => (previous + direction + galleryImages.length) % galleryImages.length);
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Close if clicking the backdrop (outside the gallery content)
+    if (e.target === e.currentTarget) {
+      setPreviewOpen(false);
+    }
   };
 
   return (
@@ -66,12 +90,7 @@ export const Floating3DCard = ({
           className="group relative w-full rounded-3xl border border-white/40 bg-white/80 p-6 text-left shadow-lg transition-transform duration-300 ease-out dark:border-white/20 dark:bg-[#111111]"
           style={{ transformStyle: 'preserve-3d' }}
         >
-          {meta?.[0] ? (
-            <p className="text-[0.6rem] uppercase tracking-[0.35em] text-slate-500" style={{ transform: 'translateZ(35px)' }}>
-              {meta[0]}
-            </p>
-          ) : null}
-          <h2 className="mt-2 text-2xl font-semibold text-slate-900 dark:text-white" style={{ transform: 'translateZ(50px)' }}>
+          <h2 className="text-2xl font-semibold text-slate-900 dark:text-white" style={{ transform: 'translateZ(50px)' }}>
             {title}
           </h2>
 
@@ -97,53 +116,63 @@ export const Floating3DCard = ({
             >
               {actionLabel}
             </button>
-            <div className="space-y-1">
-              <p className="text-[0.55rem] uppercase tracking-[0.3em] text-slate-400">
-                UV ArtGlass • A5 200gsm • Mixed media
-              </p>
-              {meta?.[1] ? (
-                <p className="text-[0.5rem] uppercase tracking-[0.3em] text-slate-400/80">{meta[1]}</p>
-              ) : null}
-            </div>
           </div>
         </div>
       </div>
 
       {previewOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm">
-          <div className="relative w-full max-w-3xl space-y-4 rounded-3xl border border-white/20 bg-transparent p-6 text-white">
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-sm p-4"
+          onClick={handleBackdropClick}
+        >
+          {/* 
+            Styles to ensure the image fits without scrolling.
+            On Mobile: max-height is calculated to leave room for the X button.
+            On Desktop: Standard containment.
+          */}
+          <style>{`
+            .image-gallery-slide img {
+              max-height: calc(100vh - 120px) !important;
+              width: auto !important;
+              max-width: 100% !important;
+              object-fit: contain !important;
+              margin: 0 auto;
+            }
+            @media (min-width: 640px) {
+              .image-gallery-slide img {
+                max-height: 80vh !important;
+              }
+            }
+            .image-gallery-content {
+              height: 100%;
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+            }
+          `}</style>
+
+          <div className="relative w-full h-full sm:h-auto sm:max-h-[90vh] max-w-6xl flex flex-col justify-center">
+            
+            {/* Close Button */}
             <button
               type="button"
               onClick={() => setPreviewOpen(false)}
-              className="absolute right-4 top-4 rounded-full border border-white/60 px-3 py-1 text-xs uppercase tracking-[0.3em] text-white transition hover:bg-white/10"
+              className="absolute top-0 right-0 z-50 rounded-full bg-black/50 border border-white/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white transition hover:bg-white/20 sm:-top-12 sm:right-0 sm:bg-transparent sm:border-white/60"
+              aria-label="Close preview"
             >
-              Close
+              Close ×
             </button>
-            <img
-              src={galleryImages[index]}
-              alt={`${title}-${index}`}
-              className="max-h-[70vh] w-full rounded-2xl object-cover shadow-2xl shadow-black/40"
-            />
-            <div className="flex items-center justify-between text-sm text-white/90">
-              <span>
-                {index + 1} / {galleryImages.length}
-              </span>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => navigateImage(-1)}
-                  className="rounded-full border border-white/60 px-4 py-2 text-xs uppercase tracking-[0.3em] text-white transition hover:bg-white/10"
-                >
-                  Prev
-                </button>
-                <button
-                  type="button"
-                  onClick={() => navigateImage(1)}
-                  className="rounded-full border border-white/60 px-4 py-2 text-xs uppercase tracking-[0.3em] text-white transition hover:bg-white/10"
-                >
-                  Next
-                </button>
-              </div>
+
+            {/* Gallery Container */}
+            <div className="w-full h-full sm:h-auto rounded-none sm:rounded-xl overflow-hidden flex items-center justify-center">
+              <ImageGallery
+                items={galleryItems}
+                showBullets={true}
+                showThumbnails={false} // Clean look for both, can be enabled if preferred
+                showFullscreenButton={false}
+                showPlayButton={false}
+                additionalClass="w-full"
+              />
             </div>
           </div>
         </div>
