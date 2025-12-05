@@ -1,81 +1,254 @@
-# Jesnes Galleri
+# Jesnes Galleri - Professional 3D Gallery Platform
 
-En sømløs og stilren 3D-opplevelse bygget med React, TypeScript og Tailwind CSS. Prosjektet viser frem GLB-modeller som
-roterer rolig i 360° og leverer en rolig, eksklusiv galleriopplevelse. En innebygget, skjult adminflate bruker Firebase
-Authentication for pålogging og snakker med et ASP.NET Core-backend-API for persistering i SQLite.
+A premium, production-ready 3D gallery platform built for showcasing artwork and design work. Built with React, TypeScript, Tailwind CSS on the frontend and ASP.NET Core 8 with SQLite on the backend. Features secure admin authentication, rate limiting, and a clean separation of concerns.
 
-## Status
+## Project Overview
 
-Chrome-logoen er nå låst til den faste størrelsesoppsettet vi testet tidligere, og header-spinneren ser riktig ut på
-både mobil og desktop. Denne README-endringen gjør det enkelt å pushe dagens versjon til en egen branch.
+**Frontend**: React 19 + TypeScript with Vite, featuring 3D model visualization with Three.js, responsive masonry gallery layout, and GSAP animations.
 
-## Kom i gang
+**Backend**: ASP.NET Core 8 REST API with Firebase JWT authentication, role-based authorization, comprehensive rate limiting, and SQLite persistence.
+
+**Security**: Firebase JWT token validation, admin-only authorization policy, magic-bytes file validation, rate limiting (200 req/min global, 20 req/min admin, 10 req/min uploads), security headers, and CORS protection.
+
+## Quick Start
+
+### Frontend
 
 ```bash
+# Install dependencies
 npm install
+
+# Start development server
 npm run dev
+
+# Build for production
+npm run build
 ```
 
-Åpne [http://localhost:5173](http://localhost:5173) for å se galleriet under utvikling.
+Open [http://localhost:5173](http://localhost:5173)
 
-## Legg inn dine egne GLB-modeller
+### Backend
 
-1. Plasser filene dine i `public/models`.
-2. Oppdater filbanene via admin-panelet (se avsnittet **Skjult admin-tilgang**) eller legg dem manuelt inn i databasen
-   via backend-API-et (`/api/artworks`).
-3. Velg kategori (`commercial` for kommersielle jobber eller `collection` for studio-kolleksjonen) slik at innholdet havner
-   i riktig fane. Modellen lastes i et WebGL-lerret og roterer automatisk. Hvis du legger til et bilde/preview-URL vises det
-   som et komplementært stillbilde i galleriet.
+```bash
+# From backend/Galleri.Api directory
+cd backend/Galleri.Api
 
-## Miljøvariabler og backend
+# Run database migrations
+dotnet ef database update
 
-1. Opprett et Firebase-prosjekt og aktiver **Email/Password** i Authentication (kun Auth beholdes).
-2. Kjør backend-API-et fra `backend/Galleri.Api` (se backend-README for `dotnet run`, migreringer osv.). Standard URL er
-   `http://localhost:5258`.
-3. Lag en `.env.local` med følgende nøkler (verdier finner du i Firebase-konsollen):
+# Start API server
+dotnet run
+```
 
-   ```bash
-   VITE_FIREBASE_API_KEY="..."
-   VITE_FIREBASE_AUTH_DOMAIN="..."
-   VITE_FIREBASE_PROJECT_ID="..."
-   VITE_FIREBASE_STORAGE_BUCKET="..."
-   VITE_FIREBASE_MESSAGING_SENDER_ID="..."
-   VITE_FIREBASE_APP_ID="..."
-   VITE_API_BASE_URL="http://localhost:5258"
-   # Komma-separerte admin-adresser som skal ha full tilgang til admin-panelet
-   VITE_FIREBASE_ADMIN_EMAILS="admin@example.com"
-   # Sett en hemmelig slug for admin-routing. Standard er `_atelier-admin` hvis feltet utelates.
-   VITE_ADMIN_ROUTE="min-skjulte-rute"
-   ```
+API runs on `http://localhost:5258` by default.
 
-4. Etter innlogging kan du legge til, oppdatere og slette gallerielementer (tittel, beskrivelse, kategori, GLB-filbane,
-   valgfritt bilde) direkte fra admin-siden. Alle CRUD-kall sendes til backend-API-et, og bildene lastes opp via
-   `/api/upload-image`.
+## Environment Setup
 
-## Skjult admin-tilgang
+### Frontend (.env.local)
 
-- Admin-dashboardet eksponeres på `/${VITE_ADMIN_ROUTE}` (standard `/_atelier-admin`). Oppdater miljøvariabelen før
-  produksjonsutrulling slik at stien blir vanskelig å gjette.
-- Innloggingssiden ligger på samme slug med `/login`-suffiks.
-- Ingen lenker i UI peker til adminruten; skriv URL-en manuelt eller lagre den som et bokmerke.
-- Tilgangen begrenses av e-postene definert i `VITE_FIREBASE_ADMIN_EMAILS`.
+```bash
+# Firebase Configuration (from Firebase Console)
+VITE_FIREBASE_API_KEY="your-api-key"
+VITE_FIREBASE_AUTH_DOMAIN="your-project.firebaseapp.com"
+VITE_FIREBASE_PROJECT_ID="your-project-id"
+VITE_FIREBASE_STORAGE_BUCKET="your-bucket.appspot.com"
+VITE_FIREBASE_MESSAGING_SENDER_ID="your-sender-id"
+VITE_FIREBASE_APP_ID="your-app-id"
 
-## Struktur
+# API Configuration
+VITE_API_BASE_URL="http://localhost:5258"
 
-- `src/pages/Gallery.tsx` – hovedgalleri med 3D-visning, kategorifaner og strøm fra backend-API-et.
-- `src/pages/Contact.tsx` – kontaktinformasjon og CTA.
-- `src/pages/Github.tsx` – lenke til repository og forslag til videre arbeid.
-- `src/pages/AdminDashboard.tsx` – skjult adminflate for CRUD på galleriet, inkludert kategorifelt.
-- `src/pages/Login.tsx` – sikker innlogging for administratorer.
-- `src/components/ModelCanvas.tsx` – kapsler inn `<Canvas>` fra `@react-three/fiber` og håndterer lastelogikk.
-- `src/context/AuthContext.tsx` – enkel wrapper rundt Firebase Authentication.
-- `src/lib/galleryRepository.ts` – wrapper rundt backend-API-et for CRUD på galleriet.
+# Admin Configuration
+VITE_FIREBASE_ADMIN_EMAILS="admin@example.com"
+VITE_ADMIN_ROUTE="_atelier-admin"
+```
 
-## Teknologi
+### Backend (appsettings.json / Environment Variables)
 
-- [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
-- [Vite](https://vitejs.dev/)
-- [Tailwind CSS](https://tailwindcss.com/)
-- [@react-three/fiber](https://docs.pmnd.rs/react-three-fiber/getting-started/introduction) + [drei](https://github.com/pmndrs/drei)
+```json
+{
+  "Firebase": {
+    "ProjectId": "your-project-id"
+  },
+  "Admin": {
+    "Uid": "your-firebase-uid"
+  },
+  "ConnectionStrings": {
+    "DefaultConnection": "Data Source=gallery.db"
+  },
+  "Upload": {
+    "StorageDir": "wwwroot/uploads",
+    "MaxFileSizeBytes": 10485760
+  }
+}
+```
 
-Prosjektet er konfigurert med `allowJs`, så du kan blande TypeScript- og JavaScript-filer ved behov.
+## Features
+
+### Frontend
+- ✅ Responsive 3D gallery with GLB model support
+- ✅ Masonry layout with GSAP animations
+- ✅ Secure Firebase authentication
+- ✅ Admin dashboard for managing artwork
+- ✅ Image upload with progress tracking
+- ✅ Mobile-optimized UI
+- ✅ Real-time gallery item refresh
+
+### Backend
+- ✅ Firebase JWT authentication
+- ✅ Admin-only authorization policy
+- ✅ Rate limiting (configurable per endpoint)
+- ✅ Magic-bytes file validation (JPEG, PNG, GIF, WebP)
+- ✅ Path traversal protection
+- ✅ Security headers (X-Content-Type-Options, X-Frame-Options, etc.)
+- ✅ Comprehensive logging
+- ✅ EF Core migrations
+- ✅ CORS configuration for frontend origins
+
+## Project Structure
+
+### Frontend
+```
+src/
+├── pages/
+│   ├── Gallery.tsx          # Main gallery page
+│   ├── AdminDashboard.tsx   # Admin management interface
+│   ├── Login.tsx            # Admin login
+│   ├── Contact.tsx          # Contact page
+│   └── Github.tsx           # Repository link
+├── components/
+│   ├── ModelCanvas.tsx      # 3D model viewer (React Three Fiber)
+│   ├── Masonry.tsx          # Gallery layout with animations
+│   └── [other components]
+├── context/
+│   └── AuthContext.tsx      # Firebase auth management
+├── lib/
+│   ├── apiClient.ts         # HTTP client with auth
+│   ├── galleryRepository.ts # API integration layer
+│   ├── firebase.ts          # Firebase configuration
+│   └── [utilities]
+└── hooks/
+    └── [custom React hooks]
+```
+
+### Backend
+```
+Galleri.Api/
+├── Program.cs               # ASP.NET configuration
+├── Controllers/
+│   ├── ArtworksController.cs
+│   └── UploadController.cs
+├── Models/
+│   └── Artwork.cs
+├── DTOs/
+│   └── CreateArtworkDto.cs
+├── Services/
+│   ├── IImageStorageService.cs
+│   └── LocalImageStorageService.cs
+├── Data/
+│   ├── AppDbContext.cs
+│   └── Migrations/
+└── Properties/
+    └── launchSettings.json
+```
+
+## Deployment
+
+### Frontend Deployment
+```bash
+# Build production bundle
+npm run build
+
+# Deploy dist/ folder to hosting platform (Vercel, Netlify, etc.)
+```
+
+### Backend Deployment
+```bash
+# Build release bundle
+dotnet publish -c Release -o ./publish
+
+# Deploy to hosting platform (Azure, Docker, etc.)
+```
+
+**Important**: 
+- Update `VITE_API_BASE_URL` to your production API URL
+- Set `Admin:Uid` in backend configuration to your Firebase UID
+- Update CORS origins in `Program.cs` to production domain
+- Use environment variables for sensitive configuration
+
+## API Endpoints
+
+### Public Endpoints
+- `GET /api/artworks` - Get all gallery items
+- `GET /api/artworks/{id}` - Get specific item
+
+### Admin-Only Endpoints (Requires Firebase JWT + Admin UID)
+- `POST /api/artworks` - Create new artwork
+- `PUT /api/artworks/{id}` - Update artwork
+- `DELETE /api/artworks/{id}` - Delete artwork
+- `POST /api/upload-image` - Upload image
+- `DELETE /api/upload-image` - Delete image
+
+## Security Considerations
+
+✅ **Implemented**:
+- JWT token validation with issuer/audience/expiry checks
+- Admin authorization policy (NameIdentifier claim matching)
+- Rate limiting on all sensitive endpoints
+- Magic-bytes file validation (prevents spoofed file extensions)
+- Path traversal protection
+- Security headers (4 types)
+- CORS restricted to configured origins
+- Environment variables for secrets
+- No credentials in production build
+
+## Troubleshooting
+
+**503 Admin Forbidden**:
+- Verify `Admin:Uid` in backend `appsettings.json` matches Firebase UID
+- Check Firebase JWT token is valid and not expired
+
+**Upload fails (413)**:
+- Verify image file size < 10MB
+- Check file format is supported (JPEG, PNG, GIF, WebP)
+- Confirm Content-Type header is correct
+
+**CORS errors**:
+- Ensure frontend URL is added to `FrontendPolicy` in `Program.cs`
+- Check `VITE_API_BASE_URL` matches actual backend URL
+
+## Technology Stack
+
+**Frontend**:
+- React 19 + TypeScript
+- Vite (build tool)
+- Tailwind CSS (styling)
+- Three.js + React Three Fiber (3D rendering)
+- GSAP (animations)
+- Firebase SDK (authentication)
+
+**Backend**:
+- .NET 8 / ASP.NET Core 8
+- Entity Framework Core (ORM)
+- SQLite (database)
+- Firebase Admin SDK (JWT validation)
+
+## Development
+
+All code is production-ready with:
+- ✅ TypeScript strict mode
+- ✅ Comprehensive error handling
+- ✅ Input validation & sanitization
+- ✅ Async/await patterns
+- ✅ Clean code principles
+- ✅ Security best practices
+- ✅ Performance optimization
+
+## License & Notes
+
+This is a private gallery platform. Keep the admin route secret and secure your Firebase credentials.
+
+---
+
+**Last Updated**: November 30, 2025  
+**Status**: Ready for production deployment

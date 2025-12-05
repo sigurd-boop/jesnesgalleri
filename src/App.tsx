@@ -1,4 +1,4 @@
-import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
+import { NavLink, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import GalleryPage from './pages/Gallery';
 import ContactPage from './pages/Contact';
 import GithubPage from './pages/Github';
@@ -19,11 +19,20 @@ const navItems = [
 ];
 
 const App = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen bg-slate-100">
       <header className="header-with-bg relative z-20 border-b border-white/60 bg-slate-100/95 backdrop-blur-sm shadow-[0_6px_18px_-14px_rgba(15,23,42,0.55)] supports-[backdrop-filter]:backdrop-blur">
         <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-0 px-4 py-1 sm:px-6 sm:py-2">
-          <LogoSpinner />
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="cursor-pointer hover:opacity-80 transition-opacity"
+            aria-label="Go to home"
+          >
+            <LogoSpinner />
+          </button>
           <nav className="grid w-full grid-cols-2 gap-1.5 text-center text-[0.6rem] uppercase tracking-[0.3em] text-slate-500 sm:flex sm:flex-1 sm:flex-wrap sm:items-center sm:justify-center sm:gap-2 sm:text-[0.7rem] sm:tracking-[0.35em]">
             {navItems.map((item) =>
               item.type === 'internal' ? (
@@ -70,7 +79,7 @@ const App = () => {
       <footer className="border-t border-white/70 bg-white/70">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-6 py-8 text-xs uppercase tracking-[0.35em] text-slate-500 sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} Jesnes Gallery</p>
-          <p>Crafted with React · TypeScript · Tailwind</p>
+          <p>Gallery</p>
         </div>
       </footer>
     </div>
