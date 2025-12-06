@@ -25,14 +25,14 @@ const fallbackImage =
 const PROJECT_BATCH = 6;
 const MAX_PARALLAX_SHOTS = 7;
 const galleryFilterOptions = [
-  { key: 'commercial', label: 'Commission queue' },
-  { key: 'collection', label: 'Collection pieces' },
-  { key: 'studio', label: 'Studio experiments' },
+  { key: 'commercial', label: 'Commission' },
+  { key: 'collection', label: 'Collection' },
+  { key: 'studio', label: 'Studio' },
 ] as const;
 
 type GalleryFilterKey = (typeof galleryFilterOptions)[number]['key'];
 
-const heroHeadlineTexts = ["Welcome to", 'the feeding ground.', 'Scroll carefully.'];
+const heroHeadlineTexts = ['Welcome', 'Scroll carefully!'];
 
 type ParallaxImage = ZoomParallaxImage & { id: string };
 
@@ -167,15 +167,17 @@ const GalleryPage = () => {
           <div className="mx-auto h-[200px] w-full max-w-5xl sm:h-[260px]">
             <GooeyText
               texts={heroHeadlineTexts}
+              scrollControlled
+              scrollStep={420}
               className="h-full"
-              textClassName="font-serif text-slate-900 block whitespace-pre-line text-[24vw] leading-[0.85] sm:text-[14vw] md:text-[7rem]"
+              textClassName="font-serif text-slate-900 block whitespace-pre-line text-[22vw] leading-[0.9] sm:text-[12vw] md:text-[7rem]"
             />
           </div>
           <div className="mx-auto max-w-5xl px-4 text-left sm:px-6">
             <TypingAnimation
-              text="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque vitae ornare odio, sed posuere nisl viverra et. Integer pulvinar, lacus sit amet bibendum mollis, augue neque tincidunt dolor, sed gravida justo dolor id nibh. Vivamus blandit tellus non ligula porttitor sagittis, vitae gravida libero suscipit."
+              text="Every work shown here is a commission rooted in the same illegal marks that once appeared on walls overnight. More than a hundred projects delivered, each documented in full — from the first blast to the last line. Nothing duplicated. 1/1 custom work. Keep chasing the adrenaline before it’s the thing keeping you alive. Enjoy, dumbass."
               duration={65}
-              className="text-[0.75rem] leading-relaxed tracking-[0.2em] text-amber-500 sm:text-sm md:text-base md:tracking-[0.25em]"
+              className="text-[0.78rem] leading-relaxed tracking-[0.12em] text-slate-600 sm:text-sm md:text-base md:tracking-[0.16em]"
             />
           </div>
         </div>
@@ -203,7 +205,7 @@ const GalleryPage = () => {
                 type="button"
                 onClick={() => setActiveFilter(key)}
                 className={cn(
-                  'rounded-full px-6 py-3 text-xs font-semibold uppercase tracking-[0.45em] transition sm:text-sm',
+                  'rounded-full px-6 py-3 text-xs font-semibold uppercase tracking-[0.25em] transition sm:text-sm',
                   activeFilter === key
                     ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20'
                     : 'border border-slate-300 text-slate-600 hover:border-slate-600 hover:text-slate-900',

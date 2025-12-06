@@ -2,18 +2,14 @@ import { ButtonLink, Eyebrow, Muted, PageDescription, PageTitle, Surface } from 
 
 const contactPoints = [
   {
-    label: 'Email',
-    value: 'hello@jesnesgallery.com',
-    href: 'mailto:hello@jesnesgallery.com',
+    label: 'Inquiries',
+    value: 'inquiries@jesne.art',
+    href: 'mailto:inquiries@jesne.art',
   },
   {
-    label: 'Phone',
-    value: '+47 41 23 45 67',
-    href: 'tel:+4741234567',
-  },
-  {
-    label: 'Studio',
-    value: 'Jesnes Studio, Bjørvika, Oslo',
+    label: 'Social',
+    value: 'Instagram',
+    href: 'https://instagram.com',
   },
 ];
 
@@ -22,7 +18,7 @@ const ContactPage = () => {
     <div className="mx-auto max-w-4xl space-y-16">
       <section className="space-y-6 animate-fade-in-up">
         <Eyebrow>contact</Eyebrow>
-        <PageTitle>Let’s plan something beautiful</PageTitle>
+        <PageTitle>Let’s build something bold</PageTitle>
         <PageDescription>
           Partnerships, private showcases, bespoke commissions — whatever you have in mind, reach out and we’ll respond
           quickly with a tailored next step.
@@ -48,13 +44,13 @@ const ContactPage = () => {
       </section>
 
       <Surface variant="subtle" className="space-y-4 animate-fade-in-up">
-        <h2 className="text-lg font-semibold text-slate-900">Book a private viewing</h2>
+        <h2 className="text-lg font-semibold text-slate-900">Send an inquiry</h2>
         <Muted>
           Share a short brief of what you would like to explore and we will arrange a digital or in-person presentation
           curated for you.
         </Muted>
-        <ButtonLink href="mailto:hello@jesnesgallery.com?subject=Private%20Viewing" className="w-fit">
-          Send request
+        <ButtonLink href="mailto:inquiries@jesne.art?subject=Inquiry" className="w-fit">
+          Send inquiry
         </ButtonLink>
       </Surface>
     </div>
