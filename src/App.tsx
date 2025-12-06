@@ -1,7 +1,6 @@
 import { NavLink, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import GalleryPage from './pages/Gallery';
 import ContactPage from './pages/Contact';
-import GithubPage from './pages/Github';
 import ShopPage from './pages/Shop';
 import LoginPage from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
@@ -15,7 +14,6 @@ const navItems = [
   { to: '/', label: 'Gallery', type: 'internal' },
   { to: '/shop', label: 'Shop', type: 'internal' },
   { to: '/contact', label: 'Contact', type: 'internal' },
-  { to: '/github', label: 'GitHub', type: 'internal' },
 ];
 
 const App = () => {
@@ -61,7 +59,6 @@ const App = () => {
           <Route path="/" element={<GalleryPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/kontakt" element={<Navigate to="/contact" replace />} />
-          <Route path="/github" element={<GithubPage />} />
           <Route path="/shop" element={<ShopPage />} />
           <Route
             path={ADMIN_ROUTE_PATH}
