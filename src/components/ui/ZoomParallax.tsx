@@ -108,15 +108,14 @@ const ZoomParallax = ({
     mass: 0.9,
   });
 
-  // Memoized scale values
-  const scales = useMemo(() => {
-    const scale3 = useTransform(easedProgress, [0, 1], [1, isMobile ? 3.3 : 3.2]);
-    const scale4 = useTransform(easedProgress, [0, 1], [1, isMobile ? 3.8 : 4.1]);
-    const scale45 = useTransform(easedProgress, [0, 1], [1, isMobile ? 4.2 : 4.8]);
-    const scale5 = useTransform(easedProgress, [0, 1], [1, isMobile ? 4.8 : 5.4]);
+  // Transform scales - hooks must be called at top level, not inside useMemo
+  const scale3 = useTransform(easedProgress, [0, 1], [1, isMobile ? 3.3 : 3.2]);
+  const scale4 = useTransform(easedProgress, [0, 1], [1, isMobile ? 3.8 : 4.1]);
+  const scale45 = useTransform(easedProgress, [0, 1], [1, isMobile ? 4.2 : 4.8]);
+  const scale5 = useTransform(easedProgress, [0, 1], [1, isMobile ? 4.8 : 5.4]);
 
-    return [scale3, scale4, scale45, scale4, scale45, scale5, scale4];
-  }, [easedProgress, isMobile]);
+  // Memoized scale array
+  const scales = useMemo(() => [scale3, scale4, scale45, scale4, scale45, scale5, scale4], [scale3, scale4, scale45, scale5]);
 
   const showContent = imagesLoaded && images.length > 0;
 
