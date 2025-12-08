@@ -8,8 +8,8 @@ const contactPoints = [
   },
   {
     label: 'Social',
-    value: 'Instagram',
-    href: 'https://instagram.com',
+    value: 'bksnappen',
+    href: 'https://snapchat.com/add/bksnappen',
   },
 ];
 

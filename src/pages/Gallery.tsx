@@ -32,7 +32,7 @@ const galleryFilterOptions = [
 
 type GalleryFilterKey = (typeof galleryFilterOptions)[number]['key'];
 
-const heroHeadlineTexts = ['Welcome', 'Scroll carefully!'];
+const heroHeadlineTexts = ['Welcome', 'Scroll to explore'];
 
 type ParallaxImage = ZoomParallaxImage & { id: string };
 
@@ -175,7 +175,7 @@ const GalleryPage = () => {
           </div>
           <div className="mx-auto max-w-5xl px-4 text-left sm:px-6">
             <TypingAnimation
-              text="Every work shown here is a commission rooted in the same illegal marks that once appeared on walls overnight. More than a hundred projects delivered, each documented in full — from the first blast to the last line. Nothing duplicated. 1/1 custom work. Keep chasing the adrenaline before it’s the thing keeping you alive. Enjoy, dumbass."
+              text="More than a hundred projects delivered, each documented in full — from the first blast to the last line."
               duration={65}
               className="text-[0.78rem] leading-relaxed tracking-[0.12em] text-slate-600 sm:text-sm md:text-base md:tracking-[0.16em]"
             />
