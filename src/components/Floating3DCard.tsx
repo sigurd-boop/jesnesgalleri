@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import ImageGallery from 'react-image-gallery';
 import 'react-image-gallery/styles/css/image-gallery.css';
 
@@ -17,68 +17,98 @@ export const Floating3DCard = ({
 }: Floating3DCardProps) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const normalizedImages = images.map((image) => image.trim()).filter(Boolean);
-  const galleryImages = normalizedImages.length
-    ? normalizedImages
-    : ['https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1080&q=80'];
+  const requestRef = useRef<number | null>(null);
 
-  // Transform images for react-image-gallery format
-  const galleryItems = galleryImages.map((image) => ({
-    original: image,
-    thumbnail: image,
-  }));
+  const normalizedImages = useMemo(() => {
+    return images.map((image) => image.trim()).filter(Boolean);
+  }, [images]);
 
-  // Handle escape key
+  const galleryImages = useMemo(() => {
+    return normalizedImages.length
+      ? normalizedImages
+      : ['https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1080&q=80'];
+  }, [normalizedImages]);
+
+  // Transform images for react-image-gallery format with memoization
+  const galleryItems = useMemo(
+    () =>
+      galleryImages.map((image) => ({
+        original: image,
+        thumbnail: image,
+      })),
+    [galleryImages],
+  );
+
+  // Handle escape key with better cleanup
   useEffect(() => {
+    if (!previewOpen) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && previewOpen) {
+      if (e.key === 'Escape') {
         setPreviewOpen(false);
       }
     };
 
-    if (previewOpen) {
-      document.addEventListener('keydown', handleKeyDown);
-    }
-
+    document.addEventListener('keydown', handleKeyDown, { passive: true });
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [previewOpen]);
 
-  const handleMouseMove = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+  // Optimized mouse move handler with RAF throttling
+  const handleMouseMove = useCallback((event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
     const card = cardRef.current;
-    if (!card) {
-      return;
+    if (!card) return;
+
+    if (requestRef.current !== null) {
+      cancelAnimationFrame(requestRef.current);
     }
 
-    const { left, top, width, height } = card.getBoundingClientRect();
-    const x = event.clientX - left;
-    const y = event.clientY - top;
+    requestRef.current = requestAnimationFrame(() => {
+      const { left, top, width, height } = card.getBoundingClientRect();
+      const x = event.clientX - left;
+      const y = event.clientY - top;
 
-    const rotateX = ((y - height / 2) / height) * 15;
-    const rotateY = ((x - width / 2) / width) * -15;
+      const rotateX = ((y - height / 2) / height) * 15;
+      const rotateY = ((x - width / 2) / width) * -15;
 
-    card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.02)`;
-  };
+      card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.02)`;
+      card.style.willChange = 'transform';
+    });
+  }, []);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     const card = cardRef.current;
-    if (!card) {
-      return;
-    }
-    card.style.transform = 'rotateX(0deg) rotateY(0deg) scale(1)';
-  };
+    if (!card) return;
 
-  const showPreview = () => {
+    if (requestRef.current !== null) {
+      cancelAnimationFrame(requestRef.current);
+    }
+
+    requestRef.current = requestAnimationFrame(() => {
+      card.style.transform = 'rotateX(0deg) rotateY(0deg) scale(1)';
+      card.style.willChange = 'auto';
+    });
+  }, []);
+
+  const showPreview = useCallback(() => {
     setPreviewOpen(true);
-  };
+  }, []);
 
-  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Close if clicking the backdrop (outside the gallery content)
+  const handleBackdropClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
       setPreviewOpen(false);
     }
-  };
+  }, []);
+
+  // Cleanup RAF on unmount
+  useEffect(() => {
+    return () => {
+      if (requestRef.current !== null) {
+        cancelAnimationFrame(requestRef.current);
+      }
+    };
+  }, []);
 
   return (
     <>
@@ -88,14 +118,25 @@ export const Floating3DCard = ({
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
           className="group relative w-full rounded-3xl border border-white/40 bg-white/80 p-6 text-left shadow-lg transition-transform duration-300 ease-out dark:border-white/20 dark:bg-[#111111]"
-          style={{ transformStyle: 'preserve-3d' }}
+          style={{
+            transformStyle: 'preserve-3d',
+            willChange: 'transform',
+            transform: 'translateZ(0)',
+            backfaceVisibility: 'hidden',
+          }}
         >
-          <h2 className="text-2xl font-semibold text-slate-900 dark:text-white" style={{ transform: 'translateZ(50px)' }}>
+          <h2
+            className="text-2xl font-semibold text-slate-900 dark:text-white"
+            style={{ transform: 'translateZ(50px)' }}
+          >
             {title}
           </h2>
 
           {description ? (
-            <p className="mt-2 text-sm text-slate-600 dark:text-neutral-300" style={{ transform: 'translateZ(60px)' }}>
+            <p
+              className="mt-2 text-sm text-slate-600 dark:text-neutral-300"
+              style={{ transform: 'translateZ(60px)' }}
+            >
               {description}
             </p>
           ) : null}
@@ -105,6 +146,12 @@ export const Floating3DCard = ({
               src={galleryImages[0]}
               alt={title}
               className="h-52 w-full rounded-2xl object-cover shadow-md transition-shadow duration-300 sm:h-64 group-hover:shadow-xl"
+              loading="lazy"
+              decoding="async"
+              style={{
+                willChange: 'auto',
+                imageRendering: 'crisp-edges',
+              }}
             />
           </div>
 
@@ -124,12 +171,11 @@ export const Floating3DCard = ({
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-sm p-4"
           onClick={handleBackdropClick}
+          style={{
+            transform: 'translateZ(0)',
+            WebkitFontSmoothing: 'antialiased',
+          }}
         >
-          {/* 
-            Styles to ensure the image fits without scrolling.
-            On Mobile: max-height is calculated to leave room for the X button.
-            On Desktop: Standard containment.
-          */}
           <style>{`
             .image-gallery-slide img {
               max-height: calc(100vh - 120px) !important;
@@ -137,6 +183,7 @@ export const Floating3DCard = ({
               max-width: 100% !important;
               object-fit: contain !important;
               margin: 0 auto;
+              image-rendering: crisp-edges;
             }
             @media (min-width: 640px) {
               .image-gallery-slide img {
@@ -149,10 +196,13 @@ export const Floating3DCard = ({
               flex-direction: column;
               justify-content: center;
             }
+            /* Optimize gallery animations */
+            .image-gallery {
+              will-change: contents;
+            }
           `}</style>
 
           <div className="relative w-full h-full sm:h-auto sm:max-h-[90vh] max-w-6xl flex flex-col justify-center">
-            
             {/* Close Button */}
             <button
               type="button"
@@ -168,7 +218,7 @@ export const Floating3DCard = ({
               <ImageGallery
                 items={galleryItems}
                 showBullets={true}
-                showThumbnails={false} // Clean look for both, can be enabled if preferred
+                showThumbnails={false}
                 showFullscreenButton={false}
                 showPlayButton={false}
                 additionalClass="w-full"

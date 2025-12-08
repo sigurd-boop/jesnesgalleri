@@ -3,6 +3,9 @@
   width: 100%;
   min-height: 400px;
   margin: 0 auto;
+  /* Enable hardware acceleration */
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .masonry-item {
@@ -14,17 +17,42 @@
   padding: 0;
   cursor: pointer;
   box-shadow: 0 18px 55px rgba(15, 23, 42, 0.3);
+  /* Optimize for GPU rendering */
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  /* Use GPU acceleration for smooth animations */
+  perspective: 1000px;
+  contain: layout style paint;
 }
 
 .masonry-img {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
   background-size: cover;
   background-position: center;
+  /* Use will-change for GPU optimization but remove after animation */
+  will-change: auto;
+  /* Performance-friendly filter with reduced motion support */
   filter: grayscale(0.35);
-  transition: filter 0.4s ease;
+  transition: filter 0.3s ease;
+  /* Enable efficient image rendering */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  /* Prevent lag from filter changes */
+  contain: strict;
 }
 
 .masonry-item:hover .masonry-img {
   filter: grayscale(0);
+}
+
+/* Respect prefers-reduced-motion for accessibility and performance */
+@media (prefers-reduced-motion: reduce) {
+  .masonry-img,
+  .masonry-item {
+    transition: none;
+  }
 }

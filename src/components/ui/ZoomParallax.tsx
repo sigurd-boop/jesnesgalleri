@@ -1,5 +1,5 @@
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 
 import { cn } from '../../lib/cn';
 
@@ -34,67 +34,89 @@ const ZoomParallax = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [viewportWidth, setViewportWidth] = useState(() => (typeof window === 'undefined' ? 1024 : window.innerWidth));
   const [imagesLoaded, setImagesLoaded] = useState(false);
+  const loadCountRef = useRef(0);
 
-  // Preload images for a smoother experience
+  // Optimized image preloading
   useEffect(() => {
     if (!images || images.length === 0) {
       setImagesLoaded(true);
       return;
     }
 
-    let loadedCount = 0;
+    loadCountRef.current = 0;
     const numImages = images.length;
 
-    images.forEach(({ src }) => {
-      if (!src) {
-        loadedCount++;
-        if (loadedCount === numImages) {
-          setImagesLoaded(true);
-        }
-        return;
+    const handleLoadEnd = () => {
+      loadCountRef.current++;
+      if (loadCountRef.current === numImages) {
+        setImagesLoaded(true);
       }
-      const img = new Image();
-      img.src = src;
-      const onFinish = () => {
-        loadedCount++;
-        if (loadedCount === numImages) {
-          setImagesLoaded(true);
-        }
-      };
-      img.onload = onFinish;
-      img.onerror = onFinish;
+    };
+
+    // Use Promise.all for more efficient loading
+    const imagePromises = images.map(({ src }) => {
+      if (!src) {
+        return Promise.resolve();
+      }
+      return new Promise<void>((resolve) => {
+        const img = new Image();
+        img.src = src;
+        const onFinish = () => {
+          handleLoadEnd();
+          resolve();
+        };
+        img.onload = onFinish;
+        img.onerror = onFinish;
+      });
+    });
+
+    Promise.all(imagePromises).catch(() => {
+      // Ensure loaded state even if promises reject
+      setImagesLoaded(true);
     });
   }, [images]);
 
-  // Debounced resize handler
+  // Optimized debounced resize handler
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout>;
     const handleResize = () => {
       clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => setViewportWidth(window.innerWidth), 150);
+      timeoutId = setTimeout(() => {
+        setViewportWidth(window.innerWidth);
+      }, 150);
     };
-    window.addEventListener('resize', handleResize);
+
+    // Use passive event listener
+    window.addEventListener('resize', handleResize, { passive: true });
     return () => {
       clearTimeout(timeoutId);
       window.removeEventListener('resize', handleResize);
     };
   }, []);
 
-  const isMobile = viewportWidth < 640;
+  const isMobile = useMemo(() => viewportWidth < 640, [viewportWidth]);
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ['start start', 'end end'],
   });
 
-  const easedProgress = useSpring(scrollYProgress, { stiffness: 85, damping: 18, mass: 0.9 });
+  // Optimized spring animation with reduced stiffness for smoother performance
+  const easedProgress = useSpring(scrollYProgress, {
+    stiffness: 85,
+    damping: 18,
+    mass: 0.9,
+  });
 
-  // Adjusted scales for mobile and desktop
-  const scale3 = useTransform(easedProgress, [0, 1], [1, isMobile ? 3.3 : 3.2]);
-  const scale4 = useTransform(easedProgress, [0, 1], [1, isMobile ? 3.8 : 4.1]);
-  const scale45 = useTransform(easedProgress, [0, 1], [1, isMobile ? 4.2 : 4.8]);
-  const scale5 = useTransform(easedProgress, [0, 1], [1, isMobile ? 4.8 : 5.4]);
-  const scales = [scale3, scale4, scale45, scale4, scale45, scale5, scale4];
+  // Memoized scale values
+  const scales = useMemo(() => {
+    const scale3 = useTransform(easedProgress, [0, 1], [1, isMobile ? 3.3 : 3.2]);
+    const scale4 = useTransform(easedProgress, [0, 1], [1, isMobile ? 3.8 : 4.1]);
+    const scale45 = useTransform(easedProgress, [0, 1], [1, isMobile ? 4.2 : 4.8]);
+    const scale5 = useTransform(easedProgress, [0, 1], [1, isMobile ? 4.8 : 5.4]);
+
+    return [scale3, scale4, scale45, scale4, scale45, scale5, scale4];
+  }, [easedProgress, isMobile]);
 
   const showContent = imagesLoaded && images.length > 0;
 
@@ -104,23 +126,55 @@ const ZoomParallax = ({
       className={cn('relative', className)}
       style={{ height: `${isMobile ? mobileHeight : height}vh` }}
     >
-      {/* The content is always rendered but invisible when not ready */}
-      <div className={cn('sticky top-0 h-screen overflow-hidden', !showContent && 'invisible')}>
+      {/* Main content with GPU acceleration */}
+      <div
+        className={cn('sticky top-0 h-screen overflow-hidden', !showContent && 'invisible')}
+        style={{
+          transform: 'translateZ(0)',
+          backfaceVisibility: 'hidden',
+          WebkitFontSmoothing: 'antialiased',
+        }}
+      >
         {images.map(({ src, alt, id }, index) => {
           const scale = scales[index % scales.length];
           const positioningClass = positionClasses[index % positionClasses.length] || '';
 
           return (
-            <motion.div key={id ?? src} style={{ scale }} className={cn('absolute top-0 flex h-full w-full items-center justify-center', positioningClass)}>
-              <div className="relative h-[25vh] w-[25vw] overflow-hidden rounded-[2rem] shadow-2xl shadow-slate-900/20">
-                <img src={src || '/placeholder.svg'} alt={alt || 'Jesné gallery parallax'} className="h-full w-full object-cover" loading="lazy" />
+            <motion.div
+              key={id ?? src}
+              style={{
+                scale,
+                transform: 'translateZ(0)',
+                willChange: 'transform',
+              }}
+              className={cn('absolute top-0 flex h-full w-full items-center justify-center', positioningClass)}
+            >
+              <div
+                className="relative h-[25vh] w-[25vw] overflow-hidden rounded-[2rem] shadow-2xl shadow-slate-900/20"
+                style={{
+                  backfaceVisibility: 'hidden',
+                  WebkitFontSmoothing: 'antialiased',
+                  contain: 'layout style paint',
+                }}
+              >
+                <img
+                  src={src || '/placeholder.svg'}
+                  alt={alt || 'Jesné gallery parallax'}
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                  style={{
+                    willChange: 'auto',
+                    imageRendering: 'crisp-edges',
+                  }}
+                />
               </div>
             </motion.div>
           );
         })}
       </div>
 
-      {/* The loading/empty state is rendered on top when content is not ready */}
+      {/* Loading state */}
       {!showContent && (
         <div className="sticky top-0 flex h-screen items-center justify-center">
           <div className="rounded-3xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
