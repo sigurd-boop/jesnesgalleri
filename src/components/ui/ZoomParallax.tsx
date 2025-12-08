@@ -108,14 +108,25 @@ const ZoomParallax = ({
     mass: 0.9,
   });
 
-  // Transform scales - hooks must be called at top level, not inside useMemo
-  const scale3 = useTransform(easedProgress, [0, 1], [1, isMobile ? 3.3 : 3.2]);
-  const scale4 = useTransform(easedProgress, [0, 1], [1, isMobile ? 3.8 : 4.1]);
-  const scale45 = useTransform(easedProgress, [0, 1], [1, isMobile ? 4.2 : 4.8]);
-  const scale5 = useTransform(easedProgress, [0, 1], [1, isMobile ? 4.8 : 5.4]);
+  // Transform scales - hooks must be called at top level with consistent count
+  // Always create all scales regardless of mobile state
+  const scaleDesktop3 = useTransform(easedProgress, [0, 1], [1, 3.2]);
+  const scaleDesktop4 = useTransform(easedProgress, [0, 1], [1, 4.1]);
+  const scaleDesktop45 = useTransform(easedProgress, [0, 1], [1, 4.8]);
+  const scaleDesktop5 = useTransform(easedProgress, [0, 1], [1, 5.4]);
+  
+  const scaleMobile3 = useTransform(easedProgress, [0, 1], [1, 3.3]);
+  const scaleMobile4 = useTransform(easedProgress, [0, 1], [1, 3.8]);
+  const scaleMobile45 = useTransform(easedProgress, [0, 1], [1, 4.2]);
+  const scaleMobile5 = useTransform(easedProgress, [0, 1], [1, 4.8]);
 
-  // Memoized scale array
-  const scales = useMemo(() => [scale3, scale4, scale45, scale4, scale45, scale5, scale4], [scale3, scale4, scale45, scale5]);
+  // Memoized scale array - select based on isMobile
+  const scales = useMemo(() => {
+    if (isMobile) {
+      return [scaleMobile3, scaleMobile4, scaleMobile45, scaleMobile4, scaleMobile45, scaleMobile5, scaleMobile4];
+    }
+    return [scaleDesktop3, scaleDesktop4, scaleDesktop45, scaleDesktop4, scaleDesktop45, scaleDesktop5, scaleDesktop4];
+  }, [isMobile, scaleDesktop3, scaleDesktop4, scaleDesktop45, scaleDesktop5, scaleMobile3, scaleMobile4, scaleMobile45, scaleMobile5]);
 
   const showContent = imagesLoaded && images.length > 0;
 
