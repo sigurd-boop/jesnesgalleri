@@ -7,6 +7,7 @@ export type ZoomParallaxImage = {
   id?: string;
   src: string;
   alt?: string;
+  highQualitySrc?: string; // High quality version for the main image
 };
 
 // Array of positioning classes for better readability and maintenance.
@@ -145,9 +146,13 @@ const ZoomParallax = ({
           WebkitFontSmoothing: 'antialiased',
         }}
       >
-        {images.map(({ src, alt, id }, index) => {
+        {images.map(({ src, alt, id, highQualitySrc }, index) => {
           const scale = scales[index % scales.length];
           const positioningClass = positionClasses[index % positionClasses.length] || '';
+          
+          // Use high quality src for first image (main image), regular for others
+          const isMainImage = index === 0;
+          const imageSrc = isMainImage && highQualitySrc ? highQualitySrc : src;
 
           return (
             <motion.div
@@ -168,15 +173,17 @@ const ZoomParallax = ({
                 }}
               >
                 <img
-                  src={src || '/placeholder.svg'}
+                  src={imageSrc || '/placeholder.svg'}
                   alt={alt || 'Jesné gallery parallax'}
                   className="h-full w-full object-cover"
-                  loading="lazy"
-                  decoding="async"
+                  loading={isMainImage ? 'eager' : 'lazy'}
+                  decoding={isMainImage ? 'sync' : 'async'}
                   style={{
                     willChange: 'auto',
                     imageRendering: 'crisp-edges',
                   }}
+                  srcSet={isMainImage ? `${imageSrc} 1x, ${imageSrc}?w=1200&q=95 2x` : undefined}
+                  sizes={isMainImage ? '25vw' : undefined}
                 />
               </div>
             </motion.div>

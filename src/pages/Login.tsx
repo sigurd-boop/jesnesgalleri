@@ -72,7 +72,7 @@ const LoginPage = () => {
         <Eyebrow>administrator</Eyebrow>
         <PageTitle>Logg inn for å administrere galleriet</PageTitle>
         <PageDescription>
-          Skriv inn e-post og passord for en admin-bruker konfigurert i Firebase Authentication.
+          Skriv inn e-post og passord for å få tilgang.
         </PageDescription>
       </header>
 
@@ -127,13 +127,6 @@ const LoginPage = () => {
           >
             Glemte passordet?
           </button>
-          <Muted className="text-xs">
-            Tips: Bruk en dedikert admin-bruker i Firebase Authentication. Tilgangen begrenses i miljøvariabelen
-            <code className="ml-1 rounded bg-slate-900/90 px-1 py-0.5 font-mono text-[0.6rem] text-white">
-              VITE_FIREBASE_ADMIN_EMAILS
-            </code>
-            .
-          </Muted>
         </Surface>
       )}
     </div>

@@ -16,6 +16,7 @@ export const Floating3DCard = ({
   actionLabel = 'View gallery',
 }: Floating3DCardProps) => {
   const cardRef = useRef<HTMLDivElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const requestRef = useRef<number | null>(null);
 
@@ -92,7 +93,21 @@ export const Floating3DCard = ({
   }, []);
 
   const showPreview = useCallback(() => {
+    // On mobile, auto-scroll to gallery section instead of opening preview
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    if (isMobile) {
+      const gallerySection = document.getElementById('projects');
+      if (gallerySection) {
+        gallerySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+    }
     setPreviewOpen(true);
+    
+    // Scroll modal into view after a brief delay to allow render
+    setTimeout(() => {
+      modalRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
   }, []);
 
   const handleBackdropClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -169,6 +184,7 @@ export const Floating3DCard = ({
 
       {previewOpen ? (
         <div
+          ref={modalRef}
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-sm p-4"
           onClick={handleBackdropClick}
           style={{

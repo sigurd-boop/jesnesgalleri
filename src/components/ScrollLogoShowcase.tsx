@@ -10,9 +10,11 @@ const LOGO_MODEL_PATH = logoModelUrl;
 const ScrollLogoModel = ({
   isMobile,
   rotationTarget,
+  onReady,
 }: {
   isMobile: boolean;
   rotationTarget: React.MutableRefObject<{ x: number; y: number }>;
+  onReady?: () => void;
 }) => {
   const group = useRef<Group>(null);
   const hasCentered = useRef(false);
@@ -59,11 +61,14 @@ const ScrollLogoModel = ({
     logo.scale.setScalar(scaleFactor);
 
     hasCentered.current = true;
+    
+    // Notify parent that model is ready
+    onReady?.();
 
     return () => {
       materials.forEach((material) => material.dispose());
     };
-  }, [createChromeMaterial, isMobile, logo]);
+  }, [createChromeMaterial, isMobile, logo, onReady]);
 
   useFrame(() => {
     if (!group.current || !hasCentered.current) {
@@ -87,6 +92,7 @@ const ScrollLogoCanvas = ({
   rotationTarget: React.MutableRefObject<{ x: number; y: number }>;
 }) => {
   const [viewportWidth, setViewportWidth] = useState<number>(typeof window === 'undefined' ? 1024 : window.innerWidth);
+  const [isModelReady, setIsModelReady] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setViewportWidth(window.innerWidth);
@@ -105,7 +111,10 @@ const ScrollLogoCanvas = ({
       shadows
       gl={{ alpha: true }}
       className="h-full w-full"
-      style={{ backgroundColor: '#f1f5f9' }}
+      style={{
+        backgroundColor: '#f1f5f9',
+        visibility: isModelReady ? 'visible' : 'hidden',
+      }}
     >
       <ambientLight intensity={0.65} />
       <directionalLight position={[6, 6, 8]} intensity={1.4} castShadow />
@@ -120,7 +129,11 @@ const ScrollLogoCanvas = ({
           </Html>
         }
       >
-        <ScrollLogoModel isMobile={viewportWidth < 768} rotationTarget={rotationTarget} />
+        <ScrollLogoModel 
+          isMobile={viewportWidth < 768} 
+          rotationTarget={rotationTarget}
+          onReady={() => setIsModelReady(true)}
+        />
       </Suspense>
     </Canvas>
   );

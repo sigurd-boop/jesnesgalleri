@@ -38,72 +38,72 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
+  
+  // Only handle GET requests
+  if (request.method !== 'GET') {
+    return;
+  }
+
   const url = new URL(request.url);
 
-  // Cache images for 30 days
-  if (request.method === 'GET' && /\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i.test(url.pathname)) {
-    event.respondWith(
-      caches.open(IMAGE_CACHE).then((cache) => {
-        return cache.match(request).then((response) => {
-          if (response) {
+  // Strategy selection based on resource type
+  let responsePromise;
+
+  // Cache images - cache first strategy
+  if (/\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i.test(url.pathname)) {
+    responsePromise = caches.open(IMAGE_CACHE).then((cache) => {
+      return cache.match(request).then((cachedResponse) => {
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+        
+        return fetch(request)
+          .then((response) => {
+            // Only cache successful responses
+            if (response && response.status === 200 && response.type === 'basic') {
+              cache.put(request, response.clone());
+            }
             return response;
-          }
-          return fetch(request)
-            .then((response) => {
-              if (response && response.status === 200) {
-                cache.put(request, response.clone());
-              }
-              return response;
-            })
-            .catch(() => {
-              // Return a placeholder if offline
-              return new Response('Image unavailable offline', {
-                status: 503,
-                statusText: 'Service Unavailable',
-              });
-            });
-        });
+          })
+          .catch(() => {
+            // Silently fail - let browser handle missing images
+            return new Response('', { status: 404 });
+          });
+      });
+    });
+  }
+  // Cache API responses - network first with cache fallback
+  else if (url.pathname.startsWith('/api/')) {
+    responsePromise = fetch(request)
+      .then((response) => {
+        // Cache successful API responses
+        if (response && response.status === 200 && response.type === 'basic') {
+          caches.open(API_CACHE).then((cache) => {
+            cache.put(request, response.clone());
+          });
+        }
+        return response;
       })
-    );
+      .catch(() => {
+        // Return cached version if network fails
+        return caches.open(API_CACHE).then((cache) => {
+          return cache.match(request).then((cachedResponse) => {
+            return cachedResponse || new Response('', { status: 503 });
+          });
+        });
+      });
+  }
+  // Default: network first for everything else
+  else {
+    responsePromise = fetch(request).catch(() => {
+      return caches.match(request).then((cachedResponse) => {
+        return cachedResponse || new Response('', { status: 503 });
+      });
+    });
   }
 
-  // Cache API responses for 1 hour
-  if (request.method === 'GET' && url.pathname.startsWith('/api/')) {
-    event.respondWith(
-      caches.open(API_CACHE).then((cache) => {
-        return cache.match(request).then((response) => {
-          return (
-            response ||
-            fetch(request)
-              .then((fetchResponse) => {
-                if (fetchResponse && fetchResponse.status === 200) {
-                  cache.put(request, fetchResponse.clone());
-                }
-                return fetchResponse;
-              })
-              .catch(() => {
-                // Try to return cached version even if stale
-                return cache.match(request);
-              })
-          );
-        });
-      })
-    );
-  }
-
-  // Default strategy for other requests
-  if (request.method === 'GET') {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          return response;
-        })
-        .catch(() => {
-          // Return offline page or cached response
-          return caches.match(request);
-        })
-    );
-  }
+  // Single respondWith call
+  event.respondWith(responsePromise);
 });
 
 // Clean up old image cache entries

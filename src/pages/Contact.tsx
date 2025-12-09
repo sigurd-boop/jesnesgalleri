@@ -3,8 +3,8 @@ import { ButtonLink, Eyebrow, Muted, PageDescription, PageTitle, Surface } from 
 const contactPoints = [
   {
     label: 'Inquiries',
-    value: 'inquiries@jesne.art',
-    href: 'mailto:inquiries@jesne.art',
+    value: 'contact@jesne.art',
+    href: 'mailto:contact@jesne.art',
   },
   {
     label: 'Social',
@@ -49,7 +49,7 @@ const ContactPage = () => {
           Share a short brief of what you would like to explore and we will arrange a digital or in-person presentation
           curated for you.
         </Muted>
-        <ButtonLink href="mailto:inquiries@jesne.art?subject=Inquiry" className="w-fit">
+        <ButtonLink href="mailto:contact@jesne.art?subject=Inquiry" className="w-fit">
           Send inquiry
         </ButtonLink>
       </Surface>

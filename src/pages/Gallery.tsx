@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { Surface } from '../components/Bits';
 import { Floating3DCard } from '../components/Floating3DCard';
 import { cn } from '../lib/cn';
@@ -40,6 +40,7 @@ const GalleryPage = () => {
   const [items, setItems] = useState<GalleryItem[]>(fallbackGalleryItems);
   const [activeFilter, setActiveFilter] = useState<GalleryFilterKey>('commercial');
   const [projectVisible, setProjectVisible] = useState(PROJECT_BATCH);
+  const observerTargetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const unsubscribe = subscribeToGalleryItems(
@@ -82,28 +83,6 @@ const GalleryPage = () => {
   const commercialPosts = itemsByCategory.commercial;
   const collectionPosts = itemsByCategory.collection;
   const studioPosts = itemsByCategory.studio;
-
-  const parallaxImages = useMemo<ParallaxImage[]>(() => {
-    const prioritized = items.filter((item) => galleryCategories.includes(item.category));
-    const derived = prioritized.flatMap((item) => {
-      const shots = item.galleryShots?.length ? item.galleryShots : [item.imageUrl ?? fallbackImage];
-      return shots.map((shot, shotIndex) => ({
-        id: `${item.id ?? item.title}-${shotIndex}`,
-        src: shot,
-        alt: item.title ? `${item.title} shot ${shotIndex + 1}` : 'Jesné gallery piece',
-      }));
-    });
-
-    if (derived.length) {
-      return derived.slice(0, MAX_PARALLAX_SHOTS);
-    }
-
-    return Array.from({ length: MAX_PARALLAX_SHOTS }, (_, index) => ({
-      id: `fallback-${index}`,
-      src: fallbackImage,
-      alt: `Jesné placeholder ${index + 1}`,
-    }));
-  }, [items]);
 
   const buildCardsFromItems = (source: GalleryItem[]) =>
     source.map((item) => {
@@ -157,8 +136,52 @@ const GalleryPage = () => {
     return buildCardsFromItems(commercialPosts);
   }, [activeFilter, commercialPosts, collectionPosts, studioPosts]);
 
+  const parallaxImages = useMemo<ParallaxImage[]>(() => {
+    const prioritized = items.filter((item) => galleryCategories.includes(item.category));
+    const derived = prioritized.flatMap((item) => {
+      const shots = item.galleryShots?.length ? item.galleryShots : [item.imageUrl ?? fallbackImage];
+      return shots.map((shot, shotIndex) => ({
+        id: `${item.id ?? item.title}-${shotIndex}`,
+        src: shot,
+        alt: item.title ? `${item.title} shot ${shotIndex + 1}` : 'Jesné gallery piece',
+        // Add high quality version for first image - add quality params if it's a URL
+        highQualitySrc: shotIndex === 0 && shot ? `${shot}${shot.includes('?') ? '&' : '?'}w=1600&q=95` : undefined,
+      }));
+    });
+
+    if (derived.length) {
+      return derived.slice(0, MAX_PARALLAX_SHOTS);
+    }
+
+    return Array.from({ length: MAX_PARALLAX_SHOTS }, (_, index) => ({
+      id: `fallback-${index}`,
+      src: fallbackImage,
+      alt: `Jesné placeholder ${index + 1}`,
+      highQualitySrc: index === 0 ? `${fallbackImage}${fallbackImage.includes('?') ? '&' : '?'}w=1600&q=95` : undefined,
+    }));
+  }, [items]);
+
+  // Intersection Observer for infinite scroll - set up after filteredCards is defined
+  useEffect(() => {
+    const target = observerTargetRef.current;
+    if (!target) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        // When the observer target comes into view, load more items
+        if (entry.isIntersecting && projectVisible < filteredCards.length) {
+          setProjectVisible((prev) => Math.min(prev + PROJECT_BATCH, filteredCards.length));
+        }
+      },
+      { threshold: 0.2 }, // Trigger when 20% of the element is visible
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [projectVisible, filteredCards.length]);
+
   const visibleCards = filteredCards.slice(0, projectVisible);
-  const hasMoreCards = projectVisible < filteredCards.length;
 
   return (
     <div className="space-y-16">
@@ -241,17 +264,8 @@ const GalleryPage = () => {
           </Surface>
         )}
 
-        {filteredCards.length > 0 && hasMoreCards ? (
-          <div className="flex justify-center">
-            <button
-              type="button"
-              onClick={() => setProjectVisible((prev) => Math.min(prev + PROJECT_BATCH, filteredCards.length))}
-              className="rounded-full border border-slate-300 px-8 py-3 text-xs font-semibold uppercase tracking-[0.4em] text-slate-700 transition hover:border-slate-600 hover:text-slate-900"
-            >
-              Feed more specimens
-            </button>
-          </div>
-        ) : null}
+        {/* Infinite scroll observer target */}
+        <div ref={observerTargetRef} className="h-4" aria-hidden="true" />
       </section>
     </div>
   );
