@@ -8,7 +8,6 @@ import {
   type GalleryCategory,
   type GalleryItem,
 } from '../lib/galleryRepository';
-import { GooeyText } from '../components/ui/gooey-text-morphing';
 import TypingAnimation from '../components/ui/typing-animation';
 import ZoomParallax, { type ZoomParallaxImage } from '../components/ui/ZoomParallax';
 
@@ -25,8 +24,6 @@ const galleryFilterOptions = [
 ] as const;
 
 type GalleryFilterKey = (typeof galleryFilterOptions)[number]['key'];
-
-const heroHeadlineTexts = ['Welcome', 'Scroll to explore'];
 
 type ParallaxImage = ZoomParallaxImage & { id: string };
 
@@ -141,24 +138,13 @@ const GalleryPage = () => {
 
   return (
     <div className="space-y-16">
-      <section className="space-y-6 pt-6 pb-2 sm:pt-10 sm:pb-4 animate-fade-in-up">
-        <div className="space-y-5 text-center">
-          <div className="mx-auto h-[200px] w-full max-w-5xl sm:h-[260px]">
-            <GooeyText
-              texts={heroHeadlineTexts}
-              scrollControlled
-              scrollStep={420}
-              className="h-full"
-              textClassName="font-serif text-slate-900 block whitespace-pre-line text-[22vw] leading-[0.9] sm:text-[12vw] md:text-[7rem]"
-            />
-          </div>
-          <div className="mx-auto max-w-5xl px-4 text-left sm:px-6">
-            <TypingAnimation
-              text="More than a hundred projects delivered, each documented in 4k film, from the first blast to the last line."
-              duration={65}
-              className="text-[0.78rem] leading-relaxed tracking-[0.12em] text-slate-600 sm:text-sm md:text-base md:tracking-[0.16em]"
-            />
-          </div>
+      <section className="space-y-8 pt-6 pb-2 sm:pt-10 sm:pb-4 animate-fade-in-up">
+        <div className="mx-auto max-w-5xl px-4 text-center sm:px-6">
+          <TypingAnimation
+            text="More than a hundred projects delivered, each documented in 4k film, from the first blast to the last line."
+            duration={65}
+            className="text-[0.78rem] leading-relaxed tracking-[0.12em] text-slate-600 sm:text-sm md:text-base md:tracking-[0.16em]"
+          />
         </div>
       </section>
 
