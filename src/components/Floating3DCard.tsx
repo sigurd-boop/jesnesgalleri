@@ -93,15 +93,6 @@ export const Floating3DCard = ({
   }, []);
 
   const showPreview = useCallback(() => {
-    // On mobile, auto-scroll to gallery section instead of opening preview
-    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-    if (isMobile) {
-      const gallerySection = document.getElementById('projects');
-      if (gallerySection) {
-        gallerySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        return;
-      }
-    }
     setPreviewOpen(true);
     
     // Scroll modal into view after a brief delay to allow render

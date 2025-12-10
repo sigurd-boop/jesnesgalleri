@@ -8,9 +8,6 @@ import {
   type GalleryCategory,
   type GalleryItem,
 } from '../lib/galleryRepository';
-import { fallbackGalleryItems } from '../lib/galleryFallback';
-import { collectionShowcase } from '../data/collectionShowcase';
-import { studioFeedPosts } from '../data/studioFeed';
 import { GooeyText } from '../components/ui/gooey-text-morphing';
 import TypingAnimation from '../components/ui/typing-animation';
 import ZoomParallax, { type ZoomParallaxImage } from '../components/ui/ZoomParallax';
@@ -18,9 +15,6 @@ import ZoomParallax, { type ZoomParallaxImage } from '../components/ui/ZoomParal
 
 
 type ItemsByCategory = Record<GalleryCategory, GalleryItem[]>;
-
-const fallbackImage =
-  'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1080&q=80';
 
 const PROJECT_BATCH = 6;
 const MAX_PARALLAX_SHOTS = 7;
@@ -37,7 +31,7 @@ const heroHeadlineTexts = ['Welcome', 'Scroll to explore'];
 type ParallaxImage = ZoomParallaxImage & { id: string };
 
 const GalleryPage = () => {
-  const [items, setItems] = useState<GalleryItem[]>(fallbackGalleryItems);
+  const [items, setItems] = useState<GalleryItem[]>([]);
   const [activeFilter, setActiveFilter] = useState<GalleryFilterKey>('commercial');
   const [projectVisible, setProjectVisible] = useState(PROJECT_BATCH);
   const observerTargetRef = useRef<HTMLDivElement>(null);
@@ -45,15 +39,10 @@ const GalleryPage = () => {
   useEffect(() => {
     const unsubscribe = subscribeToGalleryItems(
       (nextItems) => {
-        if (nextItems.length === 0) {
-          setItems(fallbackGalleryItems);
-        } else {
-          setItems(nextItems);
-        }
+        setItems(nextItems);
       },
       (subscribeError) => {
         console.error('Unable to fetch gallery items from backend', subscribeError);
-        setItems(fallbackGalleryItems);
       },
     );
 
@@ -86,7 +75,7 @@ const GalleryPage = () => {
 
   const buildCardsFromItems = (source: GalleryItem[]) =>
     source.map((item) => {
-      const shots = item.galleryShots?.length ? item.galleryShots : [item.imageUrl ?? fallbackImage];
+      const shots = item.galleryShots?.length ? item.galleryShots : (item.imageUrl ? [item.imageUrl] : []);
       return {
         id: item.id ?? item.title,
         title: item.title,
@@ -102,35 +91,11 @@ const GalleryPage = () => {
     }
 
     if (activeFilter === 'collection') {
-      if (collectionPosts.length) {
-        return buildCardsFromItems(collectionPosts);
-      }
-      return collectionShowcase.map((item) => {
-        const shots = item.galleryShots?.length ? item.galleryShots : [fallbackImage];
-        return {
-          id: item.id,
-          title: item.title,
-          description: item.description,
-          image: shots[0],
-          images: shots,
-        };
-      });
+      return buildCardsFromItems(collectionPosts);
     }
 
     if (activeFilter === 'studio') {
-      if (studioPosts.length) {
-        return buildCardsFromItems(studioPosts);
-      }
-      return studioFeedPosts.map((post) => {
-        const shots = post.images.length ? post.images : [fallbackImage];
-        return {
-          id: post.id,
-          title: post.title,
-          description: post.caption,
-          image: shots[0],
-          images: shots,
-        };
-      });
+      return buildCardsFromItems(studioPosts);
     }
 
     return buildCardsFromItems(commercialPosts);
@@ -139,7 +104,7 @@ const GalleryPage = () => {
   const parallaxImages = useMemo<ParallaxImage[]>(() => {
     const prioritized = items.filter((item) => galleryCategories.includes(item.category));
     const derived = prioritized.flatMap((item) => {
-      const shots = item.galleryShots?.length ? item.galleryShots : [item.imageUrl ?? fallbackImage];
+      const shots = item.galleryShots?.length ? item.galleryShots : (item.imageUrl ? [item.imageUrl] : []);
       return shots.map((shot, shotIndex) => ({
         id: `${item.id ?? item.title}-${shotIndex}`,
         src: shot,
@@ -149,16 +114,7 @@ const GalleryPage = () => {
       }));
     });
 
-    if (derived.length) {
-      return derived.slice(0, MAX_PARALLAX_SHOTS);
-    }
-
-    return Array.from({ length: MAX_PARALLAX_SHOTS }, (_, index) => ({
-      id: `fallback-${index}`,
-      src: fallbackImage,
-      alt: `Jesné placeholder ${index + 1}`,
-      highQualitySrc: index === 0 ? `${fallbackImage}${fallbackImage.includes('?') ? '&' : '?'}w=1600&q=95` : undefined,
-    }));
+    return derived.slice(0, MAX_PARALLAX_SHOTS);
   }, [items]);
 
   // Intersection Observer for infinite scroll - set up after filteredCards is defined
@@ -198,7 +154,7 @@ const GalleryPage = () => {
           </div>
           <div className="mx-auto max-w-5xl px-4 text-left sm:px-6">
             <TypingAnimation
-              text="More than a hundred projects delivered, each documented in full — from the first blast to the last line."
+              text="More than a hundred projects delivered, each documented in 4k film, from the first blast to the last line."
               duration={65}
               className="text-[0.78rem] leading-relaxed tracking-[0.12em] text-slate-600 sm:text-sm md:text-base md:tracking-[0.16em]"
             />
