@@ -17,16 +17,10 @@ public class LocalImageStorageService : IImageStorageService
         _environment = environment;
         _settings = options.Value;
 
-        var webRoot = _environment.WebRootPath;
-        if (string.IsNullOrWhiteSpace(webRoot))
-        {
-            webRoot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
-            Directory.CreateDirectory(webRoot);
-            _environment.WebRootPath = webRoot;
-        }
-
-        _imagesRoot = Path.Combine(webRoot, "images");
-        Directory.CreateDirectory(_imagesRoot);
+        // Store images OUTSIDE wwwroot in a persistent uploads directory
+        var uploadsPath = Path.Combine(AppContext.BaseDirectory, "uploads", "images");
+        Directory.CreateDirectory(uploadsPath);
+        _imagesRoot = uploadsPath;
     }
 
     public async Task<ImageStorageResult> SaveImageAsync(
