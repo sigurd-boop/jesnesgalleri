@@ -178,12 +178,11 @@ const ZoomParallax = ({
                   className="h-full w-full object-cover"
                   loading={isMainImage ? 'eager' : 'lazy'}
                   decoding={isMainImage ? 'sync' : 'async'}
+                  fetchPriority={isMainImage ? 'high' : 'auto'}
                   style={{
                     willChange: 'auto',
-                    imageRendering: 'crisp-edges',
+                    imageRendering: 'auto',
                   }}
-                  srcSet={isMainImage ? `${imageSrc} 1x, ${imageSrc}?w=1200&q=95 2x` : undefined}
-                  sizes={isMainImage ? '25vw' : undefined}
                 />
               </div>
             </motion.div>
@@ -195,7 +194,7 @@ const ZoomParallax = ({
       {!showContent && (
         <div className="sticky top-0 flex h-screen items-center justify-center">
           <div className="rounded-3xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
-            {images.length ? 'Loading assets...' : 'Shots will appear here once the gallery syncs with Firebase.'}
+            {images.length ? 'Loading assets...' : 'Gallery shots will appear here once loaded from the server.'}
           </div>
         </div>
       )}

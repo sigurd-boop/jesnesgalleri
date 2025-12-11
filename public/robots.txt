@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://jesne.art/sitemap.xml
+
+# This is a legitimate art gallery and portfolio website
+# Contact: contact@jesne.art

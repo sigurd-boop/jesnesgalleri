@@ -1,5 +1,5 @@
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Environment, Html, useGLTF } from '@react-three/drei';
+import { Environment, useGLTF } from '@react-three/drei';
 import {
   Suspense,
   useCallback,
@@ -171,11 +171,27 @@ const LogoSpinner = ({ className }: { className?: string }) => {
 
   return (
     <div className={cn('logo-spinner-frame relative', className)}>
+      {/* Loading overlay - shows before Canvas is visible */}
+      {!shouldUseFallback && (!logoReady || pending > 0) ? (
+        <div
+          className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white"
+          aria-hidden="true"
+        >
+          <div className="rounded-full border border-slate-200/60 bg-white/90 px-4 py-2 text-xs uppercase tracking-[0.3em] text-slate-500">
+            Loading logo …
+          </div>
+        </div>
+      ) : null}
+      
+      {/* Canvas - fade in only when model is ready */}
       <Canvas
         camera={{ position: [0, 0, 6.6], fov: 30 }}
         dpr={[1, 2]}
         shadows
-        className="logo-spinner-canvas"
+        className={cn(
+          'logo-spinner-canvas transition-opacity duration-500',
+          logoReady && pending === 0 ? 'opacity-100' : 'opacity-0'
+        )}
         gl={{ alpha: true }}
       >
         <ambientLight intensity={0.65} />
@@ -185,15 +201,7 @@ const LogoSpinner = ({ className }: { className?: string }) => {
         <Suspense fallback={null}>
           <Environment preset="studio" background={false} />
         </Suspense>
-        <Suspense
-          fallback={
-            <Html center>
-              <div className="rounded-full border border-slate-200/60 bg-white/90 px-4 py-2 text-xs uppercase tracking-[0.3em] text-slate-500">
-                Loading logo …
-              </div>
-            </Html>
-          }
-        >
+        <Suspense fallback={null}>
           {shouldUseFallback ? (
             <FallbackIcosahedron />
           ) : (
@@ -201,17 +209,6 @@ const LogoSpinner = ({ className }: { className?: string }) => {
           )}
         </Suspense>
       </Canvas>
-      {!shouldUseFallback ? (
-        <div
-          className={cn(
-            'pointer-events-none absolute inset-0 flex items-center justify-center bg-gradient-to-b from-white via-white/40 to-transparent transition-opacity duration-500',
-            logoReady && pending === 0 ? 'opacity-0' : 'opacity-100',
-          )}
-          aria-hidden="true"
-        >
-          <div className="h-10 w-10 animate-spin rounded-full border-2 border-slate-200 border-t-slate-900" />
-        </div>
-      ) : null}
       <span className="sr-only">Jesnes Galleri</span>
     </div>
   );

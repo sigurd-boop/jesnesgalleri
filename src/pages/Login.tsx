@@ -78,12 +78,12 @@ const LoginPage = () => {
 
       {!firebaseReady ? (
         <Surface variant="subtle" className="space-y-4 border-dashed text-sm text-slate-600">
-          <p>Firebase er ikke konfigurert. Legg til miljøvariabler i prosjektet for å aktivere innlogging.</p>
+          <p>Autentisering er ikke konfigurert. Legg til miljøvariabler i prosjektet for å aktivere innlogging.</p>
           {initializationError ? (
             <p className="font-mono text-xs text-slate-500">{initializationError.message}</p>
           ) : null}
-          <ButtonLink href="https://firebase.google.com/docs/web/setup" tone="neutral">
-            Veiledning for Firebase
+          <ButtonLink href="/contact" tone="neutral">
+            Kontakt administrator
           </ButtonLink>
         </Surface>
       ) : (

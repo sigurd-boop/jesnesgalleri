@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -14,7 +14,6 @@ import {
 } from '../lib/galleryRepository';
 import { ButtonLink, Eyebrow, Muted, PageDescription, PageTitle, Surface } from '../components/Bits';
 import { uploadImageFile, deleteImageAtPath } from '../lib/storage';
-import { useEffectOnce } from '../utils/useEffectOnce';
 
 type FormState = GalleryItemInput & {
   id?: string;
@@ -45,7 +44,7 @@ const AdminDashboard = () => {
   const [galleryShotFiles, setGalleryShotFiles] = useState<File[]>([]);
   const unsubscribeRef = useRef<(() => void) | null>(null);
 
-  useEffectOnce(() => {
+  useEffect(() => {
     const unsubscribe = subscribeToGalleryItems(
       (nextItems) => {
         setItems(nextItems);
@@ -55,7 +54,7 @@ const AdminDashboard = () => {
         console.error('Kunne ikke hente gallerielementer', subscribeError);
         setError(
           subscribeError.message ||
-            'Klarte ikke å hente galleriet. Kontroller Firebase-konfigurasjonen.',
+            'Klarte ikke å hente galleriet. Kontroller API-tilkoblingen.',
         );
         setLoading(false);
       },
@@ -95,7 +94,7 @@ const AdminDashboard = () => {
         console.error('Kunne ikke hente gallerielementer', subscribeError);
         setError(
           subscribeError.message ||
-            'Klarte ikke å hente galleriet. Kontroller Firebase-konfigurasjonen.',
+            'Klarte ikke å hente galleriet. Kontroller API-tilkoblingen.',
         );
         setLoading(false);
       },
@@ -260,7 +259,7 @@ const AdminDashboard = () => {
           <Surface variant="subtle" className="border-dashed text-sm text-slate-600">
             <p>
               Ingen admin-adresser er konfigurert. Legg til en kommaseparert liste i
-              <code className="mx-2 rounded bg-slate-900/90 px-2 py-1 font-mono text-xs text-white">VITE_FIREBASE_ADMIN_EMAILS</code>
+              <code className="mx-2 rounded bg-slate-900/90 px-2 py-1 font-mono text-xs text-white">VITE_ADMIN_EMAILS</code>
               for å begrense tilgangen.
             </p>
           </Surface>

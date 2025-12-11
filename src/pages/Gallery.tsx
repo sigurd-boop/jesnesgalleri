@@ -29,6 +29,7 @@ type ParallaxImage = ZoomParallaxImage & { id: string };
 
 const GalleryPage = () => {
   const [items, setItems] = useState<GalleryItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<GalleryFilterKey>('commercial');
   const [projectVisible, setProjectVisible] = useState(PROJECT_BATCH);
   const observerTargetRef = useRef<HTMLDivElement>(null);
@@ -37,9 +38,11 @@ const GalleryPage = () => {
     const unsubscribe = subscribeToGalleryItems(
       (nextItems) => {
         setItems(nextItems);
+        setLoading(false);
       },
       (subscribeError) => {
         console.error('Unable to fetch gallery items from backend', subscribeError);
+        setLoading(false);
       },
     );
 
@@ -106,12 +109,21 @@ const GalleryPage = () => {
         id: `${item.id ?? item.title}-${shotIndex}`,
         src: shot,
         alt: item.title ? `${item.title} shot ${shotIndex + 1}` : 'Jesné gallery piece',
-        // Add high quality version for first image - add quality params if it's a URL
-        highQualitySrc: shotIndex === 0 && shot ? `${shot}${shot.includes('?') ? '&' : '?'}w=1600&q=95` : undefined,
       }));
     });
 
-    return derived.slice(0, MAX_PARALLAX_SHOTS);
+    const limited = derived.slice(0, MAX_PARALLAX_SHOTS);
+    
+    // Add high quality version ONLY for the center image (index 0) which gets the most zoom
+    return limited.map((img, index) => {
+      if (index === 0 && img.src) {
+        return {
+          ...img,
+          highQualitySrc: `${img.src}${img.src.includes('?') ? '&' : '?'}w=2400&q=98`,
+        };
+      }
+      return img;
+    });
   }, [items]);
 
   // Intersection Observer for infinite scroll - set up after filteredCards is defined
@@ -182,7 +194,16 @@ const GalleryPage = () => {
           </div>
         </div>
 
-        {visibleCards.length ? (
+        {loading ? (
+          <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-96 animate-pulse rounded-3xl bg-slate-200/50 border border-slate-200"
+              />
+            ))}
+          </div>
+        ) : visibleCards.length ? (
           <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
             {visibleCards.map((card) => (
               <Floating3DCard

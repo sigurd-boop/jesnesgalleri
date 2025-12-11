@@ -1,0 +1,7 @@
+Contact: mailto:contact@jesne.art
+Expires: 2026-12-31T23:59:59.000Z
+Preferred-Languages: no, en
+Canonical: https://jesne.art/.well-known/security.txt
+
+# Jesnes Galleri - Professional Art Gallery and Portfolio
+# This is a legitimate business website showcasing commissioned artwork

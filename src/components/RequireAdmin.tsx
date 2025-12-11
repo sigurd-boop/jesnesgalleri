@@ -23,7 +23,7 @@ const RequireAdmin = ({ children }: RequireAdminProps) => {
   if (!firebaseReady) {
     return (
       <Surface variant="subtle" className="space-y-4 border-dashed text-sm text-slate-600">
-        <p>Firebase er ikke konfigurert. Oppdater miljøvariabler i Vite-prosjektet for å aktivere admin-panelet.</p>
+        <p>Autentisering er ikke konfigurert. Oppdater miljøvariabler i prosjektet for å aktivere admin-panelet.</p>
         {initializationError ? <p className="font-mono text-xs text-slate-500">{initializationError.message}</p> : null}
       </Surface>
     );
